@@ -1,0 +1,32 @@
+# Dependencias
+node_modules/
+
+# Expo
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+
+# Directorios nativos generados por prebuild (CNG)
+/ios
+/android
+app-reservas-deportivas/ios/
+app-reservas-deportivas/android/
+app-reservas-deportivas/node_modules/
+app-reservas-deportivas/.expo/
+app-reservas-deportivas/dist/
+app-reservas-deportivas/coverage/
+
+# Secretos y variables de entorno locales
+.env
+.env*.local
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# Cobertura y logs
+coverage/
+*.log
+.DS_Store
