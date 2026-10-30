@@ -16,15 +16,15 @@ import {
 import { useRouter } from 'expo-router';
 import * as Location from 'expo-location';
 import { useSQLiteContext } from 'expo-sqlite';
-import { useTema } from '../../contexto/tema.js';
-import { useFiltrosStore, type OrdenEspacio } from '../../store/filtros.js';
-import { ServicioReservas } from '../../servicios/reservas.js';
-import { RepositorioOffline } from '../../db/repositorio-offline.js';
-import { TarjetaEspacio } from '../../componentes/TarjetaEspacio.js';
-import { EstadoPantalla } from '../../componentes/EstadoPantalla.js';
-import { Icono } from '../../componentes/Icono.js';
-import { ordenarEspaciosPorCercania } from '../../utils/distancia.js';
-import type { Coordenadas, Deporte, Espacio } from '../../tipos/index.js';
+import { useTema } from '../../contexto/tema';
+import { useFiltrosStore, type OrdenEspacio } from '../../store/filtros';
+import { ServicioReservas } from '../../servicios/reservas';
+import { RepositorioOffline } from '../../db/repositorio-offline';
+import { TarjetaEspacio } from '../../componentes/TarjetaEspacio';
+import { EstadoPantalla } from '../../componentes/EstadoPantalla';
+import { Icono } from '../../componentes/Icono';
+import { ordenarEspaciosPorCercania } from '../../utils/distancia';
+import type { Coordenadas, Deporte, Espacio } from '../../tipos/index';
 
 export default function CatalogoEspaciosPantalla() {
   const router = useRouter();

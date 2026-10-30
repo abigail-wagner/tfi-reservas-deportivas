@@ -13,8 +13,8 @@ import {
   esCancelable,
   calcularCancelableHasta,
   sintetizarTurnos,
-} from '../fechas.js';
-import type { Bloqueo, Reserva, ReservaFija } from '../../tipos/index.js';
+} from '../fechas';
+import type { Bloqueo, Reserva, ReservaFija } from '../../tipos/index';
 
 describe('Utilidades de fechas y turnos', () => {
   it('sumarUnaHora incrementa exactamente 1 hora en formato HH:00', () => {

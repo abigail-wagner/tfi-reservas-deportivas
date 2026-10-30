@@ -1,7 +1,7 @@
 // src/utils/distancia.ts
 // Utilidades de geolocalización y cálculo de distancia euclidiana/haversine
 
-import type { Coordenadas, Espacio } from '../tipos/index.js';
+import type { Coordenadas, Espacio } from '../tipos/index';
 
 /**
  * Radio medio de la Tierra en kilómetros

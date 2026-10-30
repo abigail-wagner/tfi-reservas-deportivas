@@ -4,9 +4,9 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import * as SecureStore from 'expo-secure-store';
 import * as LocalAuthentication from 'expo-local-authentication';
-import { clienteHttp, TOKEN_SECURE_KEY } from '../api/cliente.js';
-import { USUARIOS_MOCK, CONTRASENA_DEMO } from '../mocks/datos.js';
-import type { Sesion, Usuario } from '../tipos/index.js';
+import { clienteHttp, TOKEN_SECURE_KEY } from '../api/cliente';
+import { USUARIOS_MOCK, CONTRASENA_DEMO } from '../mocks/datos';
+import type { Sesion, Usuario } from '../tipos/index';
 
 const USUARIO_SECURE_KEY = 'villaguay_auth_usuario';
 const BIOMETRIA_HABILITADA_KEY = 'villaguay_biometria_activa';

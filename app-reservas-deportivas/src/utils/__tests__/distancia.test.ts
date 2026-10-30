@@ -6,8 +6,8 @@ import {
   calcularDistanciaKm,
   formatearDistancia,
   ordenarEspaciosPorCercania,
-} from '../distancia.js';
-import { ESPACIOS_MOCK } from '../../mocks/datos.js';
+} from '../distancia';
+import { ESPACIOS_MOCK } from '../../mocks/datos';
 
 describe('Utilidades de distancia geográfica', () => {
   const centroVillaguay = { latitud: -31.865, longitud: -59.027 };

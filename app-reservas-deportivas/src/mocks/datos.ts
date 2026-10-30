@@ -1,7 +1,7 @@
 // src/mocks/datos.ts
 // Datos de demostración completos según especificación del PRD y semillas de Villaguay
 
-import type { Deporte, Espacio, Reserva, ReservaFija, Bloqueo, Usuario } from '../tipos/index.js';
+import type { Deporte, Espacio, Reserva, ReservaFija, Bloqueo, Usuario } from '../tipos/index';
 
 export const DEPORTES_MOCK: Deporte[] = [
   {

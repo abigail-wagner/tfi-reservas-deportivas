@@ -1,7 +1,7 @@
 // src/utils/fechas.ts
 // Utilidades de cálculo de turnos, grilla de 7 días, ventanas de cancelación (4 horas) y restricciones horarias
 
-import type { Bloqueo, EstadoTurno, Reserva, ReservaFija, Turno } from '../tipos/index.js';
+import type { Bloqueo, EstadoTurno, Reserva, ReservaFija, Turno } from '../tipos/index';
 
 export const HORAS_INICIO = [
   '08:00', '09:00', '10:00', '11:00', '12:00', '13:00',

@@ -6,11 +6,11 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SQLiteProvider } from 'expo-sqlite';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { TemaProvider, useTema } from '../contexto/tema.js';
-import { SesionProvider } from '../contexto/sesion.js';
-import { AvisoDeRed } from '../componentes/AvisoDeRed.js';
-import { migrarBaseDeDatos } from '../db/migraciones.js';
-import { configurarCanalesNotificacion } from '../notificaciones/avisos-locales.js';
+import { TemaProvider, useTema } from '../contexto/tema';
+import { SesionProvider } from '../contexto/sesion';
+import { AvisoDeRed } from '../componentes/AvisoDeRed';
+import { migrarBaseDeDatos } from '../db/migraciones';
+import { configurarCanalesNotificacion } from '../notificaciones/avisos-locales';
 
 const queryClient = new QueryClient({
   defaultOptions: {

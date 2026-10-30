@@ -1,25 +1,25 @@
 // src/servicios/reservas.ts
 // Lógica de negocio para consulta de espacios, grilla de turnos, reservas y cancelaciones
 
-import { clienteHttp } from '../api/cliente.js';
+import { clienteHttp } from '../api/cliente';
 import {
   DEPORTES_MOCK,
   ESPACIOS_MOCK,
   RESERVAS_INICIALES_MOCK,
   FIJAS_MOCK,
   BLOQUEOS_MOCK,
-} from '../mocks/datos.js';
-import type { Deporte, Espacio, Reserva, Turno } from '../tipos/index.js';
+} from '../mocks/datos';
+import type { Deporte, Espacio, Reserva, Turno } from '../tipos/index';
 import {
   calcularCancelableHasta,
   esCancelable,
   sintetizarTurnos,
-} from '../utils/fechas.js';
+} from '../utils/fechas';
 import {
   programarRecordatorio2HorasAntes,
   cancelarRecordatorioReserva,
-} from '../notificaciones/avisos-locales.js';
-import type { RepositorioOffline } from '../db/repositorio-offline.js';
+} from '../notificaciones/avisos-locales';
+import type { RepositorioOffline } from '../db/repositorio-offline';
 
 export class ServicioReservas {
   constructor(private readonly repo?: RepositorioOffline) {}

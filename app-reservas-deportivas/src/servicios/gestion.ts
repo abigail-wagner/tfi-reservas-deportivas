@@ -1,11 +1,11 @@
 // src/servicios/gestion.ts
 // Servicios para encargados y administradores: check-in por QR, bloqueos por lluvia y reservas fijas
 
-import { clienteHttp } from '../api/cliente.js';
-import type { Bloqueo, Reserva, ReservaFija } from '../tipos/index.js';
-import { hoyString } from '../utils/fechas.js';
-import type { RepositorioOffline } from '../db/repositorio-offline.js';
-import { BLOQUEOS_MOCK, FIJAS_MOCK, RESERVAS_INICIALES_MOCK } from '../mocks/datos.js';
+import { clienteHttp } from '../api/cliente';
+import type { Bloqueo, Reserva, ReservaFija } from '../tipos/index';
+import { hoyString } from '../utils/fechas';
+import type { RepositorioOffline } from '../db/repositorio-offline';
+import { BLOQUEOS_MOCK, FIJAS_MOCK, RESERVAS_INICIALES_MOCK } from '../mocks/datos';
 
 export class ServicioGestion {
   constructor(private readonly repo?: RepositorioOffline) {}

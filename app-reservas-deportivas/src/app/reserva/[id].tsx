@@ -13,14 +13,14 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
-import { useTema } from '../../contexto/tema.js';
-import { ServicioReservas } from '../../servicios/reservas.js';
-import { RepositorioOffline } from '../../db/repositorio-offline.js';
-import { CodigoQrReserva } from '../../componentes/CodigoQrReserva.js';
-import { EstadoPantalla } from '../../componentes/EstadoPantalla.js';
-import { Icono } from '../../componentes/Icono.js';
-import { esCancelable } from '../../utils/fechas.js';
-import type { Reserva } from '../../tipos/index.js';
+import { useTema } from '../../contexto/tema';
+import { ServicioReservas } from '../../servicios/reservas';
+import { RepositorioOffline } from '../../db/repositorio-offline';
+import { CodigoQrReserva } from '../../componentes/CodigoQrReserva';
+import { EstadoPantalla } from '../../componentes/EstadoPantalla';
+import { Icono } from '../../componentes/Icono';
+import { esCancelable } from '../../utils/fechas';
+import type { Reserva } from '../../tipos/index';
 
 export default function DetalleReservaPantalla() {
   const { id } = useLocalSearchParams<{ id: string }>();

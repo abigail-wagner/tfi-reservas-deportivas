@@ -16,19 +16,19 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import * as Haptics from 'expo-haptics';
-import { useTema } from '../../../contexto/tema.js';
-import { useSesion } from '../../../contexto/sesion.js';
-import { ServicioReservas } from '../../../servicios/reservas.js';
-import { RepositorioOffline } from '../../../db/repositorio-offline.js';
-import { FilaTurno } from '../../../componentes/FilaTurno.js';
-import { EstadoPantalla } from '../../../componentes/EstadoPantalla.js';
-import { Icono } from '../../../componentes/Icono.js';
+import { useTema } from '../../../contexto/tema';
+import { useSesion } from '../../../contexto/sesion';
+import { ServicioReservas } from '../../../servicios/reservas';
+import { RepositorioOffline } from '../../../db/repositorio-offline';
+import { FilaTurno } from '../../../componentes/FilaTurno';
+import { EstadoPantalla } from '../../../componentes/EstadoPantalla';
+import { Icono } from '../../../componentes/Icono';
 import {
   formatearDiaLegible,
   hoyString,
   obtenerProximos7Dias,
-} from '../../../utils/fechas.js';
-import type { Espacio, Turno } from '../../../tipos/index.js';
+} from '../../../utils/fechas';
+import type { Espacio, Turno } from '../../../tipos/index';
 
 export default function TurnosEspacioPantalla() {
   const { id } = useLocalSearchParams<{ id: string }>();

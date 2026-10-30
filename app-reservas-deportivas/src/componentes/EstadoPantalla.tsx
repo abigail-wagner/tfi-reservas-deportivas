@@ -3,8 +3,8 @@
 
 import React from 'react';
 import { View, Text, ActivityIndicator, TouchableOpacity, StyleSheet } from 'react-native';
-import { useTema } from '../contexto/tema.js';
-import { Icono } from './Icono.js';
+import { useTema } from '../contexto/tema';
+import { Icono } from './Icono';
 
 interface EstadoPantallaProps {
   cargando?: boolean;

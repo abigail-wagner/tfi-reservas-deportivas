@@ -4,8 +4,8 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Link, Stack } from 'expo-router';
-import { useTema } from '../contexto/tema.js';
-import { Icono } from '../componentes/Icono.js';
+import { useTema } from '../contexto/tema';
+import { Icono } from '../componentes/Icono';
 
 export default function NoEncontradoPantalla() {
   const { colores } = useTema();

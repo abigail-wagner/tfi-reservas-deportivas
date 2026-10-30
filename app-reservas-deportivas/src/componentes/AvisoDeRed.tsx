@@ -4,7 +4,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import * as Network from 'expo-network';
-import { Icono } from './Icono.js';
+import { Icono } from './Icono';
 
 export const AvisoDeRed: React.FC = () => {
   const [estaConectado, setEstaConectado] = useState(true);

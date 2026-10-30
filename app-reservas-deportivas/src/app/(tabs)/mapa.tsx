@@ -6,11 +6,11 @@ import { View, Text, StyleSheet, Dimensions, TouchableOpacity } from 'react-nati
 import MapView, { Marker, Callout } from 'react-native-maps';
 import { useRouter } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
-import { useTema } from '../../contexto/tema.js';
-import { ServicioReservas } from '../../servicios/reservas.js';
-import { RepositorioOffline } from '../../db/repositorio-offline.js';
-import { Icono } from '../../componentes/Icono.js';
-import type { Espacio } from '../../tipos/index.js';
+import { useTema } from '../../contexto/tema';
+import { ServicioReservas } from '../../servicios/reservas';
+import { RepositorioOffline } from '../../db/repositorio-offline';
+import { Icono } from '../../componentes/Icono';
+import type { Espacio } from '../../tipos/index';
 
 // Coordenadas centrales de la ciudad de Villaguay, Entre Ríos
 const VILLAGUAY_CENTRO = {

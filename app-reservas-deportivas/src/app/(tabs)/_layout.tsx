@@ -3,8 +3,8 @@
 
 import React from 'react';
 import { Tabs } from 'expo-router';
-import { useTema } from '../../contexto/tema.js';
-import { Icono } from '../../componentes/Icono.js';
+import { useTema } from '../../contexto/tema';
+import { Icono } from '../../componentes/Icono';
 
 export default function LayoutPestanas() {
   const { colores } = useTema();

@@ -12,12 +12,12 @@ import {
   Alert,
 } from 'react-native';
 import { useSQLiteContext } from 'expo-sqlite';
-import { useTema } from '../../contexto/tema.js';
-import { ServicioGestion } from '../../servicios/gestion.js';
-import { ServicioReservas } from '../../servicios/reservas.js';
-import { RepositorioOffline } from '../../db/repositorio-offline.js';
-import { Icono } from '../../componentes/Icono.js';
-import type { Espacio } from '../../tipos/index.js';
+import { useTema } from '../../contexto/tema';
+import { ServicioGestion } from '../../servicios/gestion';
+import { ServicioReservas } from '../../servicios/reservas';
+import { RepositorioOffline } from '../../db/repositorio-offline';
+import { Icono } from '../../componentes/Icono';
+import type { Espacio } from '../../tipos/index';
 
 export default function ActualizarPreciosPantalla() {
   const db = useSQLiteContext();

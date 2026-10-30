@@ -15,14 +15,14 @@ import {
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { useSQLiteContext } from 'expo-sqlite';
-import { useTema } from '../../contexto/tema.js';
-import { ServicioGestion } from '../../servicios/gestion.js';
-import { ServicioReservas } from '../../servicios/reservas.js';
-import { RepositorioOffline } from '../../db/repositorio-offline.js';
-import { guardarFotoEvidenciaLocal } from '../../servicios/archivos.js';
-import { Icono } from '../../componentes/Icono.js';
-import { hoyString } from '../../utils/fechas.js';
-import type { Bloqueo, Espacio } from '../../tipos/index.js';
+import { useTema } from '../../contexto/tema';
+import { ServicioGestion } from '../../servicios/gestion';
+import { ServicioReservas } from '../../servicios/reservas';
+import { RepositorioOffline } from '../../db/repositorio-offline';
+import { guardarFotoEvidenciaLocal } from '../../servicios/archivos';
+import { Icono } from '../../componentes/Icono';
+import { hoyString } from '../../utils/fechas';
+import type { Bloqueo, Espacio } from '../../tipos/index';
 
 export default function BloqueosPantalla() {
   const db = useSQLiteContext();

@@ -4,9 +4,9 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useTema } from '../../contexto/tema.js';
-import { useSesion } from '../../contexto/sesion.js';
-import { Icono } from '../../componentes/Icono.js';
+import { useTema } from '../../contexto/tema';
+import { useSesion } from '../../contexto/sesion';
+import { Icono } from '../../componentes/Icono';
 
 export default function GestionPantalla() {
   const router = useRouter();

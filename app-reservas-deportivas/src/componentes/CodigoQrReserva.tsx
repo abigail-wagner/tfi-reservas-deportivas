@@ -3,8 +3,8 @@
 
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { useTema } from '../contexto/tema.js';
-import { Icono } from './Icono.js';
+import { useTema } from '../contexto/tema';
+import { Icono } from './Icono';
 
 interface CodigoQrReservaProps {
   codigoQr: string;

@@ -12,13 +12,13 @@ import {
   Alert,
 } from 'react-native';
 import { useSQLiteContext } from 'expo-sqlite';
-import { useTema } from '../../contexto/tema.js';
-import { ServicioGestion } from '../../servicios/gestion.js';
-import { ServicioReservas } from '../../servicios/reservas.js';
-import { RepositorioOffline } from '../../db/repositorio-offline.js';
-import { Icono } from '../../componentes/Icono.js';
-import { hoyString } from '../../utils/fechas.js';
-import type { Espacio, ReservaFija } from '../../tipos/index.js';
+import { useTema } from '../../contexto/tema';
+import { ServicioGestion } from '../../servicios/gestion';
+import { ServicioReservas } from '../../servicios/reservas';
+import { RepositorioOffline } from '../../db/repositorio-offline';
+import { Icono } from '../../componentes/Icono';
+import { hoyString } from '../../utils/fechas';
+import type { Espacio, ReservaFija } from '../../tipos/index';
 
 const DIAS_SEMANA = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 

@@ -14,11 +14,11 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useRouter } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import * as Haptics from 'expo-haptics';
-import { useTema } from '../../contexto/tema.js';
-import { ServicioGestion } from '../../servicios/gestion.js';
-import { RepositorioOffline } from '../../db/repositorio-offline.js';
-import { Icono } from '../../componentes/Icono.js';
-import type { Reserva } from '../../tipos/index.js';
+import { useTema } from '../../contexto/tema';
+import { ServicioGestion } from '../../servicios/gestion';
+import { RepositorioOffline } from '../../db/repositorio-offline';
+import { Icono } from '../../componentes/Icono';
+import type { Reserva } from '../../tipos/index';
 
 export default function EscanearQrPantalla() {
   const router = useRouter();

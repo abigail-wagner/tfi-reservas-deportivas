@@ -5,11 +5,11 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Image } from 'expo-image';
 import * as Haptics from 'expo-haptics';
-import { useTema } from '../contexto/tema.js';
-import { useSesion } from '../contexto/sesion.js';
-import { Icono } from './Icono.js';
-import { formatearDistancia } from '../utils/distancia.js';
-import type { Espacio } from '../tipos/index.js';
+import { useTema } from '../contexto/tema';
+import { useSesion } from '../contexto/sesion';
+import { Icono } from './Icono';
+import { formatearDistancia } from '../utils/distancia';
+import type { Espacio } from '../tipos/index';
 
 interface TarjetaEspacioProps {
   espacio: Espacio;

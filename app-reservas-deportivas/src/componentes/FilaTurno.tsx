@@ -3,9 +3,9 @@
 
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { useTema } from '../contexto/tema.js';
-import { Icono } from './Icono.js';
-import type { Turno } from '../tipos/index.js';
+import { useTema } from '../contexto/tema';
+import { Icono } from './Icono';
+import type { Turno } from '../tipos/index';
 
 interface FilaTurnoProps {
   turno: Turno;

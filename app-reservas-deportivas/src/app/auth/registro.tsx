@@ -15,9 +15,9 @@ import { useRouter } from 'expo-router';
 import { useForm, Controller } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useTema } from '../../contexto/tema.js';
-import { useSesion } from '../../contexto/sesion.js';
-import { Icono } from '../../componentes/Icono.js';
+import { useTema } from '../../contexto/tema';
+import { useSesion } from '../../contexto/sesion';
+import { Icono } from '../../componentes/Icono';
 
 const esquemaRegistro = z.object({
   nombre: z.string().min(3, 'El nombre debe tener al menos 3 caracteres'),

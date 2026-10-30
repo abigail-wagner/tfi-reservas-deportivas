@@ -4,8 +4,8 @@
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import { Platform } from 'react-native';
-import { clienteHttp } from '../api/cliente.js';
-import type { Reserva } from '../tipos/index.js';
+import { clienteHttp } from '../api/cliente';
+import type { Reserva } from '../tipos/index';
 
 // Manejador en primer plano
 Notifications.setNotificationHandler({

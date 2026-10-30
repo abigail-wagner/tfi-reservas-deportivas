@@ -15,10 +15,10 @@ import { useRouter } from 'expo-router';
 import { useForm, Controller } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useTema } from '../../contexto/tema.js';
-import { useSesion } from '../../contexto/sesion.js';
-import { Icono } from '../../componentes/Icono.js';
-import { USUARIOS_MOCK } from '../../mocks/datos.js';
+import { useTema } from '../../contexto/tema';
+import { useSesion } from '../../contexto/sesion';
+import { Icono } from '../../componentes/Icono';
+import { USUARIOS_MOCK } from '../../mocks/datos';
 
 const esquemaIngreso = z.object({
   email: z.string().email('Ingresá un correo electrónico válido'),

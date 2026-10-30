@@ -12,10 +12,10 @@ import {
   Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useTema } from '../../contexto/tema.js';
-import { useSesion } from '../../contexto/sesion.js';
-import { Icono } from '../../componentes/Icono.js';
-import { USUARIOS_MOCK } from '../../mocks/datos.js';
+import { useTema } from '../../contexto/tema';
+import { useSesion } from '../../contexto/sesion';
+import { Icono } from '../../componentes/Icono';
+import { USUARIOS_MOCK } from '../../mocks/datos';
 
 export default function PerfilPantalla() {
   const router = useRouter();

@@ -14,14 +14,14 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import { useSQLiteContext } from 'expo-sqlite';
 import * as Haptics from 'expo-haptics';
-import { useTema } from '../../contexto/tema.js';
-import { useSesion } from '../../contexto/sesion.js';
-import { ServicioReservas } from '../../servicios/reservas.js';
-import { RepositorioOffline } from '../../db/repositorio-offline.js';
-import { ReproductorCancha } from '../../componentes/ReproductorCancha.js';
-import { EstadoPantalla } from '../../componentes/EstadoPantalla.js';
-import { Icono } from '../../componentes/Icono.js';
-import type { Espacio } from '../../tipos/index.js';
+import { useTema } from '../../contexto/tema';
+import { useSesion } from '../../contexto/sesion';
+import { ServicioReservas } from '../../servicios/reservas';
+import { RepositorioOffline } from '../../db/repositorio-offline';
+import { ReproductorCancha } from '../../componentes/ReproductorCancha';
+import { EstadoPantalla } from '../../componentes/EstadoPantalla';
+import { Icono } from '../../componentes/Icono';
+import type { Espacio } from '../../tipos/index';
 
 export default function DetalleEspacioPantalla() {
   const { id } = useLocalSearchParams<{ id: string }>();

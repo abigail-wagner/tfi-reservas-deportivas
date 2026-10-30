@@ -2,7 +2,7 @@
 // Repositorio de base de datos local SQLite con consultas parametrizadas (?) para funcionamiento offline
 
 import type { SQLiteDatabase } from 'expo-sqlite';
-import type { Bloqueo, Espacio, Reserva, ReservaFija } from '../tipos/index.js';
+import type { Bloqueo, Espacio, Reserva, ReservaFija } from '../tipos/index';
 
 export class RepositorioOffline {
   constructor(private readonly db: SQLiteDatabase) {}
