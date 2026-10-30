@@ -1,0 +1,46 @@
+# .maestro/camino-principal.yaml
+# Flujo Maestro E2E para el camino crítico de reserva deportiva en Villaguay
+
+appId: ar.edu.uner.reservasvillaguay
+---
+# 1. Lanzamiento de la aplicación
+- launchApp:
+    clearState: false
+
+# 2. Verificar carga del catálogo de canchas
+- assertVisible: "Canchas"
+- assertVisible: "Polideportivo Municipal"
+
+# 3. Filtrar por deporte Fútbol 5
+- tapOn: "Fútbol 5"
+
+# 4. Seleccionar la Cancha 1
+- tapOn: "Cancha 1 — Fútbol 5"
+
+# 5. Verificar pantalla de detalle de espacio
+- assertVisible: "Detalle de Cancha"
+- assertVisible: "Reglamento y Condiciones"
+- assertVisible: "Ver Disponibilidad"
+
+# 6. Acceder a la grilla de turnos
+- tapOn: "Ver Disponibilidad"
+- assertVisible: "Disponibilidad y Turnos"
+- assertVisible: "Hoy"
+
+# 7. Seleccionar un turno libre y confirmar
+- tapOn: "Reservar"
+- assertVisible: "Confirmar Reserva"
+- tapOn: "Confirmar Turno"
+
+# 8. Verificar generación de la reserva y QR
+- assertVisible: "¡Reserva Confirmada!"
+- tapOn: "Ver Código QR"
+- assertVisible: "Detalle de Reserva"
+- assertVisible: "Presentá este código en la entrada"
+
+# 9. Navegar a Mis Reservas
+- back
+- back
+- tapOn: "Reservas"
+- assertVisible: "Próximas Turnos"
+- assertVisible: "CONFIRMADA"
