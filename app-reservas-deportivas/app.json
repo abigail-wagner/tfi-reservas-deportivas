@@ -1,0 +1,100 @@
+{
+  "expo": {
+    "name": "Reservas Villaguay",
+    "slug": "reservas-deportivas-villaguay",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "reservasvillaguay",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0284c7"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "ar.edu.uner.reservasvillaguay",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Permiso para escanear el código QR de reservas en el complejo.",
+        "NSPhotoLibraryUsageDescription": "Permiso para adjuntar fotos de evidencia de mantenimiento o clima adverso.",
+        "NSLocationWhenInUseUsageDescription": "Permiso para calcular la distancia a los complejos deportivos de Villaguay y ordenar las canchas más cercanas.",
+        "NSFaceIDUsageDescription": "Permiso para iniciar sesión rápidamente con datos biométricos."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#0284c7",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "package": "ar.edu.uner.reservasvillaguay",
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "USE_BIOMETRIC",
+        "USE_FINGERPRINT",
+        "VIBRATE",
+        "RECEIVE_BOOT_COMPLETED"
+      ]
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Permiso para escanear el código QR de reservas en el complejo."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Permiso para adjuntar fotos de evidencia de mantenimiento o clima adverso."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Permiso para calcular la distancia a los complejos deportivos de Villaguay y ordenar las canchas más cercanas."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#0284c7",
+          "sounds": []
+        }
+      ],
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Permiso para iniciar sesión rápidamente con datos biométricos."
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#0284c7"
+        }
+      ],
+      "expo-video",
+      "expo-audio",
+      "expo-sqlite",
+      "expo-secure-store",
+      "expo-image"
+    ],
+    "web": {
+      "favicon": "./assets/favicon.png"
+    }
+  }
+}
