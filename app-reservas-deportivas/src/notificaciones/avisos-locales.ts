@@ -24,19 +24,23 @@ Notifications.setNotificationHandler({
  */
 export async function configurarCanalesNotificacion(): Promise<void> {
   if (Platform.OS === 'android') {
-    await Notifications.setNotificationChannelAsync('reservas', {
-      name: 'Recordatorios de Reservas',
-      importance: Notifications.AndroidImportance.MAX,
-      vibrationPattern: [0, 250, 250, 250],
-      lightColor: '#0284C7',
-    });
+    try {
+      await Notifications.setNotificationChannelAsync('reservas', {
+        name: 'Recordatorios de Reservas',
+        importance: Notifications.AndroidImportance.MAX,
+        vibrationPattern: [0, 250, 250, 250],
+        lightColor: '#0284C7',
+      });
 
-    await Notifications.setNotificationChannelAsync('general', {
-      name: 'Avisos Generales y Clima',
-      importance: Notifications.AndroidImportance.HIGH,
-      vibrationPattern: [0, 200, 200],
-      lightColor: '#0284C7',
-    });
+      await Notifications.setNotificationChannelAsync('general', {
+        name: 'Avisos Generales y Clima',
+        importance: Notifications.AndroidImportance.HIGH,
+        vibrationPattern: [0, 200, 200],
+        lightColor: '#0284C7',
+      });
+    } catch (error) {
+      console.warn('[Notificaciones] Canales en Expo Go:', error);
+    }
   }
 }
 
