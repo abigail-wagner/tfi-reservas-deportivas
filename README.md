@@ -75,7 +75,7 @@ npm install
 
 # 3. Iniciar el servidor de desarrollo
 # 👉 MODO RECOMENDADO (Túnel): funciona con cualquier conexión (Wi-Fi, datos móviles o detrás de firewalls)
-npx expo start --tunnel
+npx expo start --tunnel ngrok
 
 # 👉 O MODO LOCAL (si celular y computadora están en el mismo Wi-Fi sin bloqueo de router):
 npx expo start
