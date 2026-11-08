@@ -1,7 +1,7 @@
 // src/app/(tabs)/perfil.tsx
-// Perfil de usuario, configuración de biometría, modo oscuro y selector rápido de cuentas demo
+// Perfil de usuario, configuración de biometría, modo oscuro, centro de notificaciones (Google FCM / Local) y selector de cuentas demo
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -10,12 +10,20 @@ import {
   Switch,
   StyleSheet,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import * as Notifications from 'expo-notifications';
 import { useTema } from '../../contexto/tema';
 import { useSesion } from '../../contexto/sesion';
 import { Icono } from '../../componentes/Icono';
 import { USUARIOS_MOCK } from '../../mocks/datos';
+import {
+  obtenerTokenPushDispositivo,
+  enviarNotificacionPruebaLocal,
+  programarAvisoPruebaSegundos,
+  solicitarPushPruebaServidor,
+} from '../../notificaciones/avisos-locales';
 
 export default function PerfilPantalla() {
   const router = useRouter();
@@ -28,6 +36,27 @@ export default function PerfilPantalla() {
     setBiometriaHabilitada,
     iniciarSesion,
   } = useSesion();
+
+  const [permisoNotif, setPermisoNotif] = useState<boolean | null>(null);
+  const [pushToken, setPushToken] = useState<string | null>(null);
+  const [cargandoAccion, setCargandoAccion] = useState(false);
+  const [mostrarGuiaGoogle, setMostrarGuiaGoogle] = useState(false);
+
+  useEffect(() => {
+    async function verificarEstadoNotificaciones() {
+      try {
+        const { status } = await Notifications.getPermissionsAsync();
+        setPermisoNotif(status === 'granted');
+        if (status === 'granted') {
+          const t = await obtenerTokenPushDispositivo();
+          setPushToken(t);
+        }
+      } catch {
+        // En emuladores o entornos sin soporte
+      }
+    }
+    verificarEstadoNotificaciones();
+  }, [usuario]);
 
   const handleCerrarSesion = () => {
     Alert.alert('Cerrar Sesión', '¿Deseás salir de tu cuenta?', [
@@ -49,6 +78,59 @@ export default function PerfilPantalla() {
       Alert.alert('Sesión cambiada', `Iniciaste como ${email}`);
     } catch {
       //
+    }
+  };
+
+  const handlePedirPermiso = async () => {
+    try {
+      const { status } = await Notifications.requestPermissionsAsync();
+      const concedido = status === 'granted';
+      setPermisoNotif(concedido);
+      if (concedido) {
+        const t = await obtenerTokenPushDispositivo();
+        setPushToken(t);
+        Alert.alert('Permiso concedido', '¡Ahora vas a recibir recordatorios y avisos deportivos!');
+      } else {
+        Alert.alert('Permiso denegado', 'Podés activarlo en los Ajustes del sistema.');
+      }
+    } catch (e: any) {
+      Alert.alert('Error', e?.message || 'No se pudo solicitar el permiso.');
+    }
+  };
+
+  const handlePruebaLocal = async () => {
+    try {
+      await enviarNotificacionPruebaLocal();
+      Alert.alert('¡Notificación enviada!', 'Revisá la bandeja superior de tu teléfono.');
+    } catch (e: any) {
+      Alert.alert('Error al emitir notificación', e?.message || 'Ocurrió un error.');
+    }
+  };
+
+  const handlePruebaProgramada = async () => {
+    try {
+      await programarAvisoPruebaSegundos(5);
+      Alert.alert(
+        '⏱️ Aviso programado (5 segundos)',
+        '¡Minimizá la aplicación ahora para ver cómo el sistema operativo dibuja el banner de notificación!',
+        [{ text: 'Entendido' }]
+      );
+    } catch (e: any) {
+      Alert.alert('Error', e?.message || 'No se pudo programar el aviso.');
+    }
+  };
+
+  const handlePruebaPushServidor = async () => {
+    setCargandoAccion(true);
+    try {
+      const res = await solicitarPushPruebaServidor();
+      if (res.exito) {
+        Alert.alert('Respuesta del Servidor (API)', res.mensaje);
+      } else {
+        Alert.alert('Aviso del Servidor', res.mensaje);
+      }
+    } finally {
+      setCargandoAccion(false);
     }
   };
 
@@ -178,6 +260,128 @@ export default function PerfilPantalla() {
             trackColor={{ false: '#CBD5E1', true: colores.primario }}
           />
         </View>
+      </View>
+
+      {/* 🔔 CENTRO DE NOTIFICACIONES Y GOOGLE FCM */}
+      <Text style={[styles.seccionTitulo, { color: colores.textoSecundario }]}>
+        Notificaciones · Google FCM y Locales
+      </Text>
+
+      <View
+        style={[
+          styles.seccionAjustes,
+          { backgroundColor: colores.tarjeta, borderColor: colores.borde, padding: 16 },
+        ]}
+      >
+        {/* Estado del permiso */}
+        <View style={styles.filaEstadoNotif}>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.notifTitulo, { color: colores.texto }]}>
+              Estado de Notificaciones
+            </Text>
+            <Text style={[styles.notifSub, { color: colores.textoSecundario }]}>
+              {permisoNotif === true
+                ? 'Permiso concedido en este dispositivo.'
+                : permisoNotif === false
+                ? 'Permiso denegado o pendiente.'
+                : 'Comprobando permisos...'}
+            </Text>
+          </View>
+
+          {permisoNotif ? (
+            <View style={[styles.badge, { backgroundColor: esOscuro ? '#064E3B' : '#DCFCE7' }]}>
+              <Text style={[styles.badgeTexto, { color: colores.exito }]}>Activo ✅</Text>
+            </View>
+          ) : (
+            <TouchableOpacity
+              style={[styles.botonPermiso, { backgroundColor: colores.primario }]}
+              onPress={handlePedirPermiso}
+            >
+              <Text style={styles.botonPermisoTexto}>Activar</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {/* Token FCM / Expo */}
+        <View style={[styles.cajaToken, { backgroundColor: colores.fondo, borderColor: colores.borde }]}>
+          <Text style={[styles.cajaTokenLabel, { color: colores.textoSecundario }]}>
+            Identificador Push (Google FCM / Expo Token):
+          </Text>
+          <Text
+            style={[styles.cajaTokenValor, { color: colores.texto }]}
+            numberOfLines={2}
+            selectable
+          >
+            {pushToken ||
+              'En Expo Go (Android) las push remotas usan desarrollo; las notificaciones locales están 100% activas.'}
+          </Text>
+        </View>
+
+        {/* Botones de prueba interactiva */}
+        <Text style={[styles.subSeccionTitulo, { color: colores.textoSecundario }]}>
+          Acciones de Prueba (Cátedra U04.T03):
+        </Text>
+
+        <View style={styles.grupoBotonesPrueba}>
+          <TouchableOpacity
+            style={[styles.botonAccionNotif, { backgroundColor: colores.primario }]}
+            onPress={handlePruebaLocal}
+          >
+            <Icono nombre="notifications" tamano={18} color="#FFFFFF" />
+            <Text style={styles.botonAccionTexto}>Aviso Local Inmediato</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.botonAccionNotif, { backgroundColor: colores.advertencia }]}
+            onPress={handlePruebaProgramada}
+          >
+            <Icono nombre="timer-outline" tamano={18} color="#FFFFFF" />
+            <Text style={styles.botonAccionTexto}>Programar en 5 Segundos</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.botonAccionNotif, { backgroundColor: '#4F46E5' }]}
+            onPress={handlePruebaPushServidor}
+            disabled={cargandoAccion}
+          >
+            {cargandoAccion ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <>
+                <Icono nombre="cloud-upload-outline" tamano={18} color="#FFFFFF" />
+                <Text style={styles.botonAccionTexto}>Push desde Servidor (API)</Text>
+              </>
+            )}
+          </TouchableOpacity>
+        </View>
+
+        {/* Guía desplegable de Google Cloud / Firebase */}
+        <TouchableOpacity
+          style={[styles.botonGuiaGoogle, { borderTopColor: colores.borde }]}
+          onPress={() => setMostrarGuiaGoogle(!mostrarGuiaGoogle)}
+        >
+          <Icono nombre="logo-google" tamano={18} color="#EA4335" />
+          <Text style={[styles.botonGuiaTexto, { color: colores.primario }]}>
+            {mostrarGuiaGoogle ? 'Ocultar guía de Google Firebase FCM ▲' : 'Ver configuración Google Firebase FCM ▼'}
+          </Text>
+        </TouchableOpacity>
+
+        {mostrarGuiaGoogle && (
+          <View style={[styles.panelGuia, { backgroundColor: colores.fondo, borderColor: colores.borde }]}>
+            <Text style={[styles.guiaPaso, { color: colores.texto }]}>
+              <Text style={{ fontWeight: '700' }}>1. Proyecto Firebase:</Text> Creá un proyecto en Firebase Console (console.firebase.google.com) con tu cuenta de Google.
+            </Text>
+            <Text style={[styles.guiaPaso, { color: colores.texto }]}>
+              <Text style={{ fontWeight: '700' }}>2. Registrar Android:</Text> Usá el paquete exacto <Text style={{ fontFamily: 'monospace' }}>ar.edu.uner.reservasvillaguay</Text>.
+            </Text>
+            <Text style={[styles.guiaPaso, { color: colores.texto }]}>
+              <Text style={{ fontWeight: '700' }}>3. google-services.json:</Text> Ya está configurado y vinculado en app.json. Descargá el tuyo de Firebase y reemplazalo en la raíz de app-reservas-deportivas.
+            </Text>
+            <Text style={[styles.guiaPaso, { color: colores.texto }]}>
+              <Text style={{ fontWeight: '700' }}>4. Clave de Servicio FCM V1:</Text> En Configuración del Proyecto ➔ Cuentas de Servicio ➔ Generar clave privada, y vinculala con <Text style={{ fontFamily: 'monospace' }}>eas credentials</Text>.
+            </Text>
+          </View>
+        )}
       </View>
 
       {/* Cuentas Demo para Evaluación de Cátedra */}
@@ -327,6 +531,102 @@ const styles = StyleSheet.create({
   ajusteSub: {
     fontSize: 12,
     marginTop: 1,
+  },
+  filaEstadoNotif: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 14,
+  },
+  notifTitulo: {
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  notifSub: {
+    fontSize: 12,
+    marginTop: 2,
+  },
+  badge: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  badgeTexto: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  botonPermiso: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  botonPermisoTexto: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 13,
+  },
+  cajaToken: {
+    borderWidth: 1,
+    borderRadius: 10,
+    padding: 10,
+    marginBottom: 14,
+  },
+  cajaTokenLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  cajaTokenValor: {
+    fontSize: 12,
+    fontFamily: 'monospace',
+  },
+  subSeccionTitulo: {
+    fontSize: 11,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 8,
+  },
+  grupoBotonesPrueba: {
+    gap: 8,
+    marginBottom: 14,
+  },
+  botonAccionNotif: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+    gap: 8,
+  },
+  botonAccionTexto: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  botonGuiaGoogle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingTop: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  botonGuiaTexto: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  panelGuia: {
+    marginTop: 10,
+    padding: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    gap: 8,
+  },
+  guiaPaso: {
+    fontSize: 12,
+    lineHeight: 18,
   },
   filaDemo: {
     flexDirection: 'row',

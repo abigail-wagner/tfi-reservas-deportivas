@@ -2,9 +2,10 @@
 // Layout raíz con proveedores de SQLite, React Query, Tema, Sesión y Stack Navigation
 
 import React, { useEffect } from 'react';
-import { Stack } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SQLiteProvider } from 'expo-sqlite';
+import * as Notifications from 'expo-notifications';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { TemaProvider, useTema } from '../contexto/tema';
 import { SesionProvider } from '../contexto/sesion';
@@ -22,11 +23,30 @@ const queryClient = new QueryClient({
 });
 
 function NavegacionRaiz() {
+  const router = useRouter();
   const { colores, esOscuro } = useTema();
 
   useEffect(() => {
     configurarCanalesNotificacion();
-  }, []);
+
+    // Listener para cuando llega una notificación mientras la app está abierta
+    const subRecibida = Notifications.addNotificationReceivedListener((notif) => {
+      console.log('[Notificación recibida en primer plano]:', notif.request.content.title);
+    });
+
+    // Listener para cuando el usuario presiona la notificación (abierta, minimizada o cerrada)
+    const subTocada = Notifications.addNotificationResponseReceivedListener((respuesta) => {
+      const ruta = respuesta.notification.request.content.data?.ruta;
+      if (ruta && typeof ruta === 'string') {
+        router.push(ruta as any);
+      }
+    });
+
+    return () => {
+      subRecibida.remove();
+      subTocada.remove();
+    };
+  }, [router]);
 
   return (
     <>

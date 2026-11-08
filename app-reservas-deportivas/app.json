@@ -31,6 +31,7 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "package": "ar.edu.uner.reservasvillaguay",
+      "googleServicesFile": "./google-services.json",
       "predictiveBackGestureEnabled": false,
       "permissions": [
         "CAMERA",

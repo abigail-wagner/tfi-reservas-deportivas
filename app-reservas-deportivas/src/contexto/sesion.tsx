@@ -1,11 +1,12 @@
 // src/contexto/sesion.tsx
-// Gestión del estado de sesión, almacenamiento seguro en SecureStore y autenticación biométrica
+// Gestión del estado de sesión, almacenamiento seguro en SecureStore, autenticación biométrica y registro de push token
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import * as SecureStore from 'expo-secure-store';
 import * as LocalAuthentication from 'expo-local-authentication';
 import { clienteHttp, TOKEN_SECURE_KEY } from '../api/cliente';
 import { USUARIOS_MOCK, CONTRASENA_DEMO } from '../mocks/datos';
+import { registrarTokenPushEnBackend } from '../notificaciones/avisos-locales';
 import type { Sesion, Usuario } from '../tipos/index';
 
 const USUARIO_SECURE_KEY = 'villaguay_auth_usuario';
@@ -60,11 +61,13 @@ export const SesionProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           const u = JSON.parse(usuarioGuardadoStr) as Usuario;
           setToken(tokenGuardado);
           setUsuario(u);
+          registrarTokenPushEnBackend().catch(() => {});
         } else {
           // Sesión por defecto inicial de Emiliano (usr-207) para facilitar evaluación de cátedra
           const demoInicial = USUARIOS_MOCK[0];
           setUsuario(demoInicial);
           setToken('demo-jwt-token-emiliano');
+          registrarTokenPushEnBackend().catch(() => {});
         }
       } catch {
         // Sesión vacía o fallback
@@ -88,6 +91,7 @@ export const SesionProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setUsuario(nuevoUsuario);
       await SecureStore.setItemAsync(TOKEN_SECURE_KEY, nuevoToken);
       await SecureStore.setItemAsync(USUARIO_SECURE_KEY, JSON.stringify(nuevoUsuario));
+      registrarTokenPushEnBackend().catch(() => {});
       return nuevoUsuario;
     } catch {
       // Fallback offline o demo
@@ -100,6 +104,7 @@ export const SesionProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         setUsuario(demoUser);
         await SecureStore.setItemAsync(TOKEN_SECURE_KEY, fakeToken);
         await SecureStore.setItemAsync(USUARIO_SECURE_KEY, JSON.stringify(demoUser));
+        registrarTokenPushEnBackend().catch(() => {});
         return demoUser;
       }
       throw new Error('Credenciales inválidas. Comprobá el correo y contraseña.');
@@ -124,6 +129,7 @@ export const SesionProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setUsuario(nuevoUsuario);
       await SecureStore.setItemAsync(TOKEN_SECURE_KEY, nuevoToken);
       await SecureStore.setItemAsync(USUARIO_SECURE_KEY, JSON.stringify(nuevoUsuario));
+      registrarTokenPushEnBackend().catch(() => {});
       return nuevoUsuario;
     } catch {
       const nuevoUsuario: Usuario = {
@@ -141,6 +147,7 @@ export const SesionProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setUsuario(nuevoUsuario);
       await SecureStore.setItemAsync(TOKEN_SECURE_KEY, fakeToken);
       await SecureStore.setItemAsync(USUARIO_SECURE_KEY, JSON.stringify(nuevoUsuario));
+      registrarTokenPushEnBackend().catch(() => {});
       return nuevoUsuario;
     }
   };

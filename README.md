@@ -146,3 +146,4 @@ npm run test:notificaciones
 * **Multimedia Moderna:** Reproducción de video de recorrido de canchas con `expo-video` (`VideoView` y `useVideoPlayer`).
 * **Hardware:** Escáner QR de ingreso con cámara, fotos de evidencia de anegamiento con galería/cámara, geolocalización y mapa con `react-native-maps`, y vibración háptica con `expo-haptics`.
 * **Seguridad:** Almacenamiento seguro del token en `expo-secure-store` y compatibilidad con inicio de sesión biométrico (Huella dactilar / Face ID).
+* **Notificaciones Push y Locales (Google FCM):** Canales de Android, permisos dinámicos, recordatorios a 2 horas del turno, listeners de apertura con redirección de ruta y centro de pruebas interactivo en la pestaña Perfil (ver guía detallada en [docs/GUIA_NOTIFICACIONES_GOOGLE_FCM.md](./docs/GUIA_NOTIFICACIONES_GOOGLE_FCM.md)).
