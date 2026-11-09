@@ -164,51 +164,76 @@ export async function solicitarPushPruebaServidor(): Promise<{ exito: boolean; m
 }
 
 /**
- * Programa un recordatorio local 2 horas antes del inicio del turno de la reserva
+ * Programa los recordatorios locales antes del inicio del turno:
+ * 1) A las 2 horas antes (requisito formal del PRD).
+ * 2) A la 1 hora antes (aviso inminente para ir a la cancha con el QR listo).
  */
-export async function programarRecordatorio2HorasAntes(reserva: Reserva): Promise<string | null> {
+export async function programarRecordatoriosTurno(reserva: Reserva): Promise<void> {
   try {
-    if (!reserva.fecha || !reserva.inicio) return null;
+    if (!reserva.fecha || !reserva.inicio) return;
 
     const [a, m, d] = reserva.fecha.split('-').map(Number);
     const [h, min] = reserva.inicio.split(':').map(Number);
     const fechaTurno = new Date(a, m - 1, d, h, min, 0);
-
-    // 2 horas antes
-    const fechaAviso = new Date(fechaTurno.getTime() - 2 * 60 * 60 * 1000);
     const ahora = new Date();
 
-    if (fechaAviso.getTime() <= ahora.getTime()) {
-      // Ya pasaron las 2 horas previas
-      return null;
+    // 1) Recordatorio 2 horas antes (PRD de cátedra)
+    const fecha2Hs = new Date(fechaTurno.getTime() - 2 * 60 * 60 * 1000);
+    if (fecha2Hs.getTime() > ahora.getTime()) {
+      await Notifications.scheduleNotificationAsync({
+        identifier: `recordatorio_2h_${reserva.id}`,
+        content: {
+          title: '¡Tu partido comienza en 2 horas! 🏟️',
+          body: `Tenés turno en ${reserva.espacioNombre || 'la cancha'} a las ${reserva.inicio}. Presentá tu QR al ingresar.`,
+          data: { reservaId: reserva.id, tipo: 'recordatorio_turno', ruta: `/reserva/${reserva.id}` },
+          sound: true,
+        },
+        trigger: {
+          type: Notifications.SchedulableTriggerInputTypes.DATE,
+          date: fecha2Hs,
+          channelId: 'reservas',
+        },
+      });
     }
 
-    const idNotificacion = await Notifications.scheduleNotificationAsync({
-      identifier: `recordatorio_${reserva.id}`,
-      content: {
-        title: '¡Tu partido comienza en 2 horas!',
-        body: `Tenés turno en ${reserva.espacioNombre || 'la cancha'} a las ${reserva.inicio}. Presentá tu QR al ingresar.`,
-        data: { reservaId: reserva.id, tipo: 'recordatorio_turno', ruta: `/reserva/${reserva.id}` },
-        sound: true,
-      },
-      trigger: {
-        type: Notifications.SchedulableTriggerInputTypes.DATE,
-        date: fechaAviso,
-        channelId: 'reservas',
-      },
-    });
-
-    return idNotificacion;
-  } catch {
-    return null;
+    // 2) Recordatorio 1 hora antes (aviso previo al inicio)
+    const fecha1H = new Date(fechaTurno.getTime() - 1 * 60 * 60 * 1000);
+    if (fecha1H.getTime() > ahora.getTime()) {
+      await Notifications.scheduleNotificationAsync({
+        identifier: `recordatorio_1h_${reserva.id}`,
+        content: {
+          title: '¡Falta 1 hora para tu turno! ⏱️⚽🏀',
+          body: `En 1 hora comienza tu partido en ${reserva.espacioNombre || 'el complejo'}. Mostrale tu código QR a Marcelo en la puerta.`,
+          data: { reservaId: reserva.id, tipo: 'recordatorio_turno_1h', ruta: `/reserva/${reserva.id}` },
+          sound: true,
+        },
+        trigger: {
+          type: Notifications.SchedulableTriggerInputTypes.DATE,
+          date: fecha1H,
+          channelId: 'reservas',
+        },
+      });
+    }
+  } catch (error) {
+    console.warn('[Notificaciones] Error al programar recordatorios de turno:', error);
   }
 }
 
 /**
- * Cancela el recordatorio local de una reserva si es cancelada
+ * Función compatible con llamadas existentes para programar recordatorios del turno
+ */
+export async function programarRecordatorio2HorasAntes(reserva: Reserva): Promise<string | null> {
+  await programarRecordatoriosTurno(reserva);
+  return `recordatorio_2h_${reserva.id}`;
+}
+
+/**
+ * Cancela los recordatorios locales de una reserva si es cancelada
  */
 export async function cancelarRecordatorioReserva(reservaId: string): Promise<void> {
   try {
+    await Notifications.cancelScheduledNotificationAsync(`recordatorio_2h_${reservaId}`);
+    await Notifications.cancelScheduledNotificationAsync(`recordatorio_1h_${reservaId}`);
     await Notifications.cancelScheduledNotificationAsync(`recordatorio_${reservaId}`);
   } catch {
     // Si no existía o falló, no rompe
