@@ -30,3 +30,8 @@ app-reservas-deportivas/coverage/
 coverage/
 *.log
 .DS_Store
+
+# Secretos de Firebase y credenciales
+*-firebase-adminsdk-*.json
+credentials.json
+*.keystore

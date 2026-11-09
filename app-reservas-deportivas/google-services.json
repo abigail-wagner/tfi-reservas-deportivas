@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "104928475920",
+    "project_number": "237970487255",
     "project_id": "reservas-deportivas-villaguay",
-    "storage_bucket": "reservas-deportivas-villaguay.appspot.com"
+    "storage_bucket": "reservas-deportivas-villaguay.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:104928475920:android:3f8472910a8273b4",
+        "mobilesdk_app_id": "1:237970487255:android:02298f0337307bfc083d92",
         "android_client_info": {
           "package_name": "ar.edu.uner.reservasvillaguay"
         }
@@ -15,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyD-GoogleCloudServicesVillaguayKey"
+          "current_key": "AIzaSyA-oLH2ubM4mJWMZJiC9ylTfySZNqLNotc"
         }
       ],
       "services": {
