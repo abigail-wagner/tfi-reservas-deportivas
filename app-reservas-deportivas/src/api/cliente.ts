@@ -6,11 +6,8 @@ import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import type { RespuestaError } from '../tipos/index';
 
-// En emulador Android 10.0.2.2 apunta al host local; en iOS/Web localhost
-export const DEFAULT_API_URL = Platform.select({
-  android: 'http://10.0.2.2:3000',
-  default: 'http://localhost:3000',
-});
+// URL pública del backend de Reservas Deportivas
+export const DEFAULT_API_URL = 'https://reservas.tail92fdf5.ts.net';
 
 export const TOKEN_SECURE_KEY = 'villaguay_auth_token';
 

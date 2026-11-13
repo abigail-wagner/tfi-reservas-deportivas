@@ -58,7 +58,8 @@ npm run start:dev
 
 > [!NOTE]
 > La API quedará corriendo en `http://localhost:3000`. Podés abrir `http://localhost:3000/salud` en tu navegador para verificar que responda `{"estado": "ok"}`.
-> **Dejá esta terminal abierta.**
+> **Servidor en línea activo:** La aplicación móvil está configurada por defecto para conectarse directamente a la API en producción en **`https://reservas.tail92fdf5.ts.net`** (puedes verificar su estado en `https://reservas.tail92fdf5.ts.net/salud`).
+> Si levantás el backend localmente, podés sobrescribir la variable en `app-reservas-deportivas/.env`.
 
 ---
 
