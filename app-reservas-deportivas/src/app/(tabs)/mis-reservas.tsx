@@ -306,7 +306,7 @@ const styles = StyleSheet.create({
   },
   listaContenido: {
     padding: 16,
-    paddingBottom: 32,
+    paddingBottom: 64,
   },
   tarjetaReserva: {
     borderRadius: 16,

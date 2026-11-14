@@ -13,9 +13,9 @@ export default function LayoutPestanas() {
   const insets = useSafeAreaInsets();
 
   // En Android con barra de navegación por software (3 botones o barra de gestos),
-  // insets.bottom contiene la altura que ocupa la barra del sistema.
-  // Al sumarlo dinámicamente al padding y al alto total, los botones e íconos
-  // quedan elevados y nunca superpuestos con los controles del dispositivo.
+  // la barra nativa del sistema operativo ocupa entre 48dp y 54dp de la parte inferior.
+  // Aseguramos un padding inferior robusto para que la barra de pestañas y sus iconos
+  // queden completamente por encima y nunca tapados por los controles del dispositivo.
   const esAndroid = Platform.OS === 'android';
   const esAndroidWeb =
     Platform.OS === 'web' &&
@@ -23,9 +23,10 @@ export default function LayoutPestanas() {
     /android/i.test(navigator.userAgent);
   const esDispositivoAndroid = esAndroid || esAndroidWeb;
 
-  const paddingInferior = insets.bottom > 0
-    ? insets.bottom + 8
-    : (esDispositivoAndroid ? 18 : 10);
+  const baseInferiorAndroid = Math.max(insets.bottom, 48);
+  const paddingInferior = esDispositivoAndroid
+    ? baseInferiorAndroid + 12
+    : (insets.bottom > 0 ? insets.bottom + 8 : 12);
 
   const alturaTabBar = 60 + paddingInferior;
 

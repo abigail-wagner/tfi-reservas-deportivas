@@ -10,6 +10,7 @@ import {
   StyleSheet,
   Dimensions,
   Alert,
+  Platform,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Image } from 'expo-image';
@@ -264,7 +265,9 @@ export default function DetalleEspacioPantalla() {
               {
                 backgroundColor: colores.tarjeta,
                 borderTopColor: colores.borde,
-                paddingBottom: insets.bottom > 0 ? insets.bottom + 12 : 14,
+                paddingBottom: insets.bottom > 0
+                  ? insets.bottom + (Platform.OS === 'android' ? 16 : 12)
+                  : (Platform.OS === 'android' ? 56 : 14),
               },
             ]}
           >

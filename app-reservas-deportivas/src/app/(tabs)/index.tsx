@@ -439,7 +439,7 @@ const styles = StyleSheet.create({
   },
   listaContenido: {
     padding: 16,
-    paddingBottom: 32,
+    paddingBottom: 64,
   },
   modalFondo: {
     flex: 1,
