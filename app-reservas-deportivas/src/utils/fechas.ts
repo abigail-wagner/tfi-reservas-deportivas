@@ -92,6 +92,60 @@ export function calcularCancelableHasta(fecha: string, inicio: string): string {
 }
 
 /**
+ * Construye el ID de turno con el formato oficial del contrato de la API:
+ * `tur-esp-XX-AAAAMMDD-HH`
+ */
+export function construirIdTurno(espacioId: string, fecha: string, inicio: string): string {
+  const fechaCompacta = fecha.replace(/-/g, '');
+  const horaDosDigitos = inicio.slice(0, 2);
+  return `tur-${espacioId}-${fechaCompacta}-${horaDosDigitos}`;
+}
+
+/**
+ * Desarma un `turnoId` de la API (`tur-esp-02-20260919-19`) o local (`esp-02_2026-09-19_19:00`)
+ */
+export function desarmarIdTurno(
+  turnoId: string
+): { espacioId: string; fecha: string; inicio: string; fin: string } | null {
+  const mApi = /^tur-(esp-[A-Za-z0-9_-]+)-(\d{4})(\d{2})(\d{2})-(\d{2})$/.exec(turnoId);
+  if (mApi) {
+    const [, espacioId, anio, mes, dia, hh] = mApi;
+    const inicio = `${hh}:00`;
+    return {
+      espacioId,
+      fecha: `${anio}-${mes}-${dia}`,
+      inicio,
+      fin: sumarUnaHora(inicio),
+    };
+  }
+  const mLocal = /^(esp-[A-Za-z0-9_-]+)_(\d{4}-\d{2}-\d{2})_(\d{2}:\d{2})$/.exec(turnoId);
+  if (mLocal) {
+    const [, espacioId, fecha, inicio] = mLocal;
+    return {
+      espacioId,
+      fecha,
+      inicio,
+      fin: sumarUnaHora(inicio),
+    };
+  }
+  return null;
+}
+
+/**
+ * Genera un código QR en el formato oficial `VGY-<MMDD>-<HH>-<6 chars>`
+ */
+export function generarCodigoQrLocal(fecha: string, inicio: string): string {
+  const alfabeto = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let sufijo = '';
+  for (let i = 0; i < 6; i++) {
+    sufijo += alfabeto[Math.floor(Math.random() * alfabeto.length)];
+  }
+  const mmdd = `${fecha.slice(5, 7)}${fecha.slice(8, 10)}`;
+  const hh = inicio.slice(0, 2);
+  return `VGY-${mmdd}-${hh}-${sufijo}`;
+}
+
+/**
  * Sintetiza la grilla de turnos para un espacio y una fecha dada cruzando:
  * - 16 turnos base de 1h (08:00 a 24:00)
  * - Reservas existentes
@@ -111,7 +165,8 @@ export function sintetizarTurnos(
 
   return HORAS_INICIO.map((inicio) => {
     const fin = sumarUnaHora(inicio);
-    const turnoId = `${espacioId}_${fecha}_${inicio}`;
+    const turnoId = construirIdTurno(espacioId, fecha, inicio);
+    const turnoIdLegacy = `${espacioId}_${fecha}_${inicio}`;
 
     // 1. Verificar bloqueos (mantenimiento / lluvia)
     const bloqueo = bloqueos.find((b) => {
@@ -141,7 +196,9 @@ export function sintetizarTurnos(
     const reserva = reservas.find(
       (r) =>
         r.espacioId === espacioId &&
-        (r.turnoId === turnoId || (r.fecha === fecha && r.inicio === inicio)) &&
+        (r.turnoId === turnoId ||
+          r.turnoId === turnoIdLegacy ||
+          (r.fecha === fecha && r.inicio === inicio)) &&
         r.estado !== 'cancelada'
     );
 

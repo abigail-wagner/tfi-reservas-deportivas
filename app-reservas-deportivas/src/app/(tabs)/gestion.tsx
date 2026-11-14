@@ -14,6 +14,7 @@ export default function GestionPantalla() {
   const { usuario } = useSesion();
 
   const esPersonal = usuario?.rol === 'encargado' || usuario?.rol === 'administrador';
+  const esAdmin = usuario?.rol === 'administrador';
 
   if (!esPersonal) {
     return <Redirect href="/(tabs)" />;
@@ -121,34 +122,38 @@ export default function GestionPantalla() {
             Reservas Fijas Semanales
           </Text>
           <Text style={[styles.opcionSub, { color: colores.textoSecundario }]}>
-            Asignar horarios fijos recurrentes a torneos, veteranos y escuelitas.
+            {esAdmin
+              ? 'Asignar horarios fijos recurrentes a torneos, veteranos y escuelitas.'
+              : 'Visualizar horarios fijos existentes de torneos, veteranos y escuelitas.'}
           </Text>
         </View>
         <Icono nombre="chevron-forward" tamano={20} color={colores.textoSecundario} />
       </TouchableOpacity>
 
-      {/* Tarjeta de Actualizar Tarifas */}
-      <TouchableOpacity
-        style={[
-          styles.tarjetaOpcion,
-          { backgroundColor: colores.tarjeta, borderColor: colores.borde },
-        ]}
-        onPress={() => router.push('/encargado/precio')}
-        activeOpacity={0.8}
-      >
-        <View style={[styles.iconoOpcion, { backgroundColor: '#DCFCE7' }]}>
-          <Icono nombre="pricetag-outline" tamano={24} color="#16A34A" />
-        </View>
-        <View style={{ flex: 1 }}>
-          <Text style={[styles.opcionTitulo, { color: colores.texto }]}>
-            Actualizar Tarifas por Hora
-          </Text>
-          <Text style={[styles.opcionSub, { color: colores.textoSecundario }]}>
-            Configurar precios de alquiler para los 11 espacios deportivos.
-          </Text>
-        </View>
-        <Icono nombre="chevron-forward" tamano={20} color={colores.textoSecundario} />
-      </TouchableOpacity>
+      {/* Tarjeta de Actualizar Tarifas (exclusivo Administrador) */}
+      {esAdmin && (
+        <TouchableOpacity
+          style={[
+            styles.tarjetaOpcion,
+            { backgroundColor: colores.tarjeta, borderColor: colores.borde },
+          ]}
+          onPress={() => router.push('/encargado/precio')}
+          activeOpacity={0.8}
+        >
+          <View style={[styles.iconoOpcion, { backgroundColor: '#DCFCE7' }]}>
+            <Icono nombre="pricetag-outline" tamano={24} color="#16A34A" />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.opcionTitulo, { color: colores.texto }]}>
+              Actualizar Tarifas por Hora
+            </Text>
+            <Text style={[styles.opcionSub, { color: colores.textoSecundario }]}>
+              Configurar precios de alquiler para los 11 espacios deportivos.
+            </Text>
+          </View>
+          <Icono nombre="chevron-forward" tamano={20} color={colores.textoSecundario} />
+        </TouchableOpacity>
+      )}
     </ScrollView>
   );
 }

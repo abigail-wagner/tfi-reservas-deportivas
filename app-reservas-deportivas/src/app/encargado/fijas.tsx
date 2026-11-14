@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useTema } from '../../contexto/tema';
+import { useSesion } from '../../contexto/sesion';
 import { ServicioGestion } from '../../servicios/gestion';
 import { ServicioReservas } from '../../servicios/reservas';
 import { RepositorioOffline } from '../../db/repositorio-offline';
@@ -25,6 +26,8 @@ const DIAS_SEMANA = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Vier
 export default function ReservasFijasPantalla() {
   const db = useSQLiteContext();
   const { colores } = useTema();
+  const { usuario } = useSesion();
+  const esAdmin = usuario?.rol === 'administrador';
 
   const repo = useMemo(() => new RepositorioOffline(db), [db]);
   const gestion = useMemo(() => new ServicioGestion(repo), [repo]);
@@ -84,104 +87,118 @@ export default function ReservasFijasPantalla() {
 
   return (
     <ScrollView style={[styles.contenedor, { backgroundColor: colores.fondo }]}>
-      <View
-        style={[
-          styles.tarjetaForm,
-          { backgroundColor: colores.tarjeta, borderColor: colores.borde },
-        ]}
-      >
-        <Text style={[styles.tituloForm, { color: colores.texto }]}>
-          Nueva Reserva Fija Semanal
-        </Text>
+      {esAdmin ? (
+        <View
+          style={[
+            styles.tarjetaForm,
+            { backgroundColor: colores.tarjeta, borderColor: colores.borde },
+          ]}
+        >
+          <Text style={[styles.tituloForm, { color: colores.texto }]}>
+            Nueva Reserva Fija Semanal
+          </Text>
 
-        <Text style={[styles.etiqueta, { color: colores.texto }]}>Cancha:</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          <View style={{ flexDirection: 'row', gap: 6, marginVertical: 4 }}>
-            {espacios.map((e) => {
-              const activo = e.id === espacioIdSeleccionado;
+          <Text style={[styles.etiqueta, { color: colores.texto }]}>Cancha:</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            <View style={{ flexDirection: 'row', gap: 6, marginVertical: 4 }}>
+              {espacios.map((e) => {
+                const activo = e.id === espacioIdSeleccionado;
+                return (
+                  <TouchableOpacity
+                    key={e.id}
+                    style={[
+                      styles.chip,
+                      {
+                        backgroundColor: activo ? colores.primario : colores.chipFondo,
+                        borderColor: activo ? colores.primario : colores.borde,
+                      },
+                    ]}
+                    onPress={() => setEspacioIdSeleccionado(e.id)}
+                  >
+                    <Text style={{ color: activo ? '#FFFFFF' : colores.texto, fontSize: 12, fontWeight: '700' }}>
+                      {e.nombre}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </ScrollView>
+
+          <Text style={[styles.etiqueta, { color: colores.texto, marginTop: 8 }]}>
+            Titular o Institución:
+          </Text>
+          <TextInput
+            style={[styles.input, { backgroundColor: colores.chipFondo, color: colores.texto, borderColor: colores.borde }]}
+            value={titular}
+            onChangeText={setTitular}
+            placeholder="Ej: Liga Municipal de Veteranos"
+          />
+
+          <Text style={[styles.etiqueta, { color: colores.texto, marginTop: 8 }]}>
+            Día de la Semana:
+          </Text>
+          <View style={styles.diasFila}>
+            {DIAS_SEMANA.map((nombre, idx) => {
+              const activo = diaSemana === idx;
               return (
                 <TouchableOpacity
-                  key={e.id}
+                  key={nombre}
                   style={[
-                    styles.chip,
-                    {
-                      backgroundColor: activo ? colores.primario : colores.chipFondo,
-                      borderColor: activo ? colores.primario : colores.borde,
-                    },
+                    styles.diaBtn,
+                    { backgroundColor: activo ? colores.primario : colores.chipFondo },
                   ]}
-                  onPress={() => setEspacioIdSeleccionado(e.id)}
+                  onPress={() => setDiaSemana(idx as any)}
                 >
-                  <Text style={{ color: activo ? '#FFFFFF' : colores.texto, fontSize: 12, fontWeight: '700' }}>
-                    {e.nombre}
+                  <Text style={{ color: activo ? '#FFFFFF' : colores.texto, fontSize: 11, fontWeight: '700' }}>
+                    {nombre.substring(0, 3)}
                   </Text>
                 </TouchableOpacity>
               );
             })}
           </View>
-        </ScrollView>
 
-        <Text style={[styles.etiqueta, { color: colores.texto, marginTop: 8 }]}>
-          Titular o Institución:
-        </Text>
-        <TextInput
-          style={[styles.input, { backgroundColor: colores.chipFondo, color: colores.texto, borderColor: colores.borde }]}
-          value={titular}
-          onChangeText={setTitular}
-          placeholder="Ej: Liga Municipal de Veteranos"
-        />
-
-        <Text style={[styles.etiqueta, { color: colores.texto, marginTop: 8 }]}>
-          Día de la Semana:
-        </Text>
-        <View style={styles.diasFila}>
-          {DIAS_SEMANA.map((nombre, idx) => {
-            const activo = diaSemana === idx;
-            return (
-              <TouchableOpacity
-                key={nombre}
-                style={[
-                  styles.diaBtn,
-                  { backgroundColor: activo ? colores.primario : colores.chipFondo },
-                ]}
-                onPress={() => setDiaSemana(idx as any)}
-              >
-                <Text style={{ color: activo ? '#FFFFFF' : colores.texto, fontSize: 11, fontWeight: '700' }}>
-                  {nombre.substring(0, 3)}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-
-        <View style={styles.horasFila}>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.etiqueta, { color: colores.texto }]}>Desde (HH:MM):</Text>
-            <TextInput
-              style={[styles.input, { backgroundColor: colores.chipFondo, color: colores.texto, borderColor: colores.borde }]}
-              value={horaInicio}
-              onChangeText={setHoraInicio}
-            />
+          <View style={styles.horasFila}>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.etiqueta, { color: colores.texto }]}>Desde (HH:MM):</Text>
+              <TextInput
+                style={[styles.input, { backgroundColor: colores.chipFondo, color: colores.texto, borderColor: colores.borde }]}
+                value={horaInicio}
+                onChangeText={setHoraInicio}
+              />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.etiqueta, { color: colores.texto }]}>Hasta (HH:MM):</Text>
+              <TextInput
+                style={[styles.input, { backgroundColor: colores.chipFondo, color: colores.texto, borderColor: colores.borde }]}
+                value={horaFin}
+                onChangeText={setHoraFin}
+              />
+            </View>
           </View>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.etiqueta, { color: colores.texto }]}>Hasta (HH:MM):</Text>
-            <TextInput
-              style={[styles.input, { backgroundColor: colores.chipFondo, color: colores.texto, borderColor: colores.borde }]}
-              value={horaFin}
-              onChangeText={setHoraFin}
-            />
-          </View>
-        </View>
 
-        <TouchableOpacity
-          style={[styles.botonGuardar, { backgroundColor: colores.primario }]}
-          onPress={handleCrearFija}
-          disabled={creando}
+          <TouchableOpacity
+            style={[styles.botonGuardar, { backgroundColor: colores.primario }]}
+            onPress={handleCrearFija}
+            disabled={creando}
+          >
+            <Text style={styles.botonGuardarTexto}>
+              {creando ? 'Guardando...' : 'Asignar Reserva Fija'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <View
+          style={[
+            styles.avisoSoloLectura,
+            { backgroundColor: colores.tarjeta, borderColor: colores.borde },
+          ]}
         >
-          <Text style={styles.botonGuardarTexto}>
-            {creando ? 'Guardando...' : 'Asignar Reserva Fija'}
+          <Icono nombre="eye-outline" tamano={20} color={colores.primario} />
+          <Text style={[styles.avisoSoloLecturaTexto, { color: colores.textoSecundario }]}>
+            Modo de solo lectura: podés consultar las reservas fijas semanales vigentes. La carga de nuevos turnos fijos está habilitada únicamente para el administrador.
           </Text>
-        </TouchableOpacity>
-      </View>
+        </View>
+      )}
 
       <Text style={[styles.seccionTitulo, { color: colores.textoSecundario }]}>
         Reservas Fijas Existentes
@@ -220,6 +237,20 @@ const styles = StyleSheet.create({
     padding: 18,
     gap: 8,
     marginBottom: 20,
+  },
+  avisoSoloLectura: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 14,
+    borderWidth: 1,
+    padding: 14,
+    gap: 10,
+    marginBottom: 18,
+  },
+  avisoSoloLecturaTexto: {
+    flex: 1,
+    fontSize: 13,
+    lineHeight: 18,
   },
   tituloForm: {
     fontSize: 17,

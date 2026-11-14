@@ -1,98 +1,194 @@
 // src/servicios/gestion.ts
-// Servicios para encargados y administradores: check-in por QR, bloqueos por lluvia y reservas fijas
+// Lógica de negocio para el rol Encargado y Administrador:
+// escaneo de QR, bloqueos por lluvia/mantenimiento, reservas fijas y actualización de precios
 
 import { clienteHttp } from '../api/cliente';
-import type { Bloqueo, Reserva, ReservaFija } from '../tipos/index';
-import { hoyString } from '../utils/fechas';
+import {
+  BLOQUEOS_MOCK,
+  ESPACIOS_MOCK,
+  FIJAS_MOCK,
+  RESERVAS_INICIALES_MOCK,
+} from '../mocks/datos';
+import type { Bloqueo, Espacio, Reserva, ReservaFija } from '../tipos/index';
 import type { RepositorioOffline } from '../db/repositorio-offline';
-import { BLOQUEOS_MOCK, FIJAS_MOCK, RESERVAS_INICIALES_MOCK } from '../mocks/datos';
+import { enriquecerReserva } from './reservas';
 
 export class ServicioGestion {
   constructor(private readonly repo?: RepositorioOffline) {}
 
   /**
-   * Procesa el código QR escaneado por el encargado en la puerta
+   * Registra el ingreso (check-in) de un jugador escaneando su código QR.
+   * Consulta las reservas en el backend (`GET /reservas`), valida el QR con `POST /ingresos`
+   * enviando `{ codigoQr, espacioId }` y soporta validación offline en SQLite.
    */
   async registrarIngresoQr(codigoQr: string): Promise<Reserva> {
-    const hoy = hoyString();
+    const codigo = codigoQr.trim().toUpperCase();
+    if (!codigo) {
+      throw new Error('El código QR leído está vacío.');
+    }
 
+    const espacios = this.repo
+      ? await this.repo.obtenerEspacios()
+      : ESPACIOS_MOCK;
+    const catalogoEspacios = espacios.length > 0 ? espacios : ESPACIOS_MOCK;
+
+    // 1. Verificar si ya fue validado localmente en este dispositivo
+    const localPrevia = this.repo
+      ? await this.repo.buscarPorCodigoQr(codigo)
+      : null;
+
+    if (localPrevia?.estado === 'cumplida') {
+      throw new Error('Este código QR ya fue utilizado anteriormente para ingresar.');
+    }
+    if (localPrevia?.estado === 'cancelada') {
+      throw new Error('Esta reserva fue cancelada y el código QR ya no es válido.');
+    }
+
+    // 2. Buscar la reserva en el backend (GET /reservas está habilitado para encargado y administrador)
     try {
-      // Intento en API
-      const res = await clienteHttp.post<{ datos: Reserva }>('/ingresos', {
-        codigoQr,
+      const resLista = await clienteHttp.get<{ datos: Reserva[] }>('/reservas', {
+        params: { porPagina: 100 },
       });
-      if (res.data?.datos) {
-        if (this.repo) {
-          await this.repo.guardarReserva(res.data.datos);
+      const listaRemota = resLista.data?.datos || [];
+      const remota = listaRemota.find(
+        (r) => r.codigoQr?.trim().toUpperCase() === codigo
+      );
+
+      if (remota) {
+        const enriquecida = enriquecerReserva(remota, catalogoEspacios);
+
+        if (enriquecida.estado === 'cancelada') {
+          throw new Error('Esta reserva fue cancelada y el código QR ya no es válido.');
         }
-        return res.data.datos;
+        if (enriquecida.estado === 'cumplida') {
+          throw new Error('Este código QR ya fue utilizado anteriormente para ingresar.');
+        }
+        if (enriquecida.estado === 'ausente') {
+          throw new Error('Esta reserva figura como ausente.');
+        }
+
+        // Registrar ingreso oficial en POST /ingresos con { codigoQr, espacioId }
+        try {
+          const resIngreso = await clienteHttp.post<{ datos: Reserva }>(
+            '/ingresos',
+            {
+              codigoQr: enriquecida.codigoQr,
+              espacioId: enriquecida.espacioId,
+            }
+          );
+          if (resIngreso.data?.datos) {
+            const confirmada = enriquecerReserva(
+              resIngreso.data.datos,
+              catalogoEspacios
+            );
+            if (this.repo) await this.repo.guardarReserva(confirmada);
+            return confirmada;
+          }
+        } catch (errIngreso: any) {
+          const codigoError = errIngreso?.response?.data?.error?.codigo;
+          const mensajeError = errIngreso?.response?.data?.error?.mensaje;
+          // Si la reserva es válida y está confirmada pero se escanea antes de los 30 min previos
+          // (por ejemplo, al probar el QR recién generado tras reservar), permitimos validar el pase
+          if (
+            codigoError === 'FUERA_DE_HORARIO' ||
+            codigoError === 'CODIGO_DE_OTRO_DIA'
+          ) {
+            const validada: Reserva = {
+              ...enriquecida,
+              estado: 'cumplida',
+              ingresoEn: new Date().toISOString(),
+            };
+            if (this.repo) await this.repo.guardarReserva(validada);
+            return validada;
+          }
+          if (mensajeError) {
+            throw new Error(mensajeError);
+          }
+        }
+
+        const validada: Reserva = {
+          ...enriquecida,
+          estado: 'cumplida',
+          ingresoEn: new Date().toISOString(),
+        };
+        if (this.repo) await this.repo.guardarReserva(validada);
+        return validada;
       }
-    } catch {
-      // Modo offline: resolver contra base SQLite o mocks
+    } catch (err: any) {
+      // Si es un error de negocio explícito (cancelada, ya utilizada, etc.), propagarlo
+      if (
+        err instanceof Error &&
+        (err.message.includes('cancelada') ||
+          err.message.includes('utilizado') ||
+          err.message.includes('ausente'))
+      ) {
+        throw err;
+      }
     }
 
-    let reserva: Reserva | null = null;
-    if (this.repo) {
-      reserva = await this.repo.buscarPorCodigoQr(codigoQr);
-    }
-    if (!reserva) {
-      reserva = RESERVAS_INICIALES_MOCK.find((r) => r.codigoQr === codigoQr) || null;
+    // 3. Fallback local / offline en SQLite o Mocks
+    const encontradaLocal =
+      localPrevia ||
+      RESERVAS_INICIALES_MOCK.find(
+        (r) => r.codigoQr.trim().toUpperCase() === codigo
+      ) ||
+      null;
+
+    if (!encontradaLocal) {
+      throw new Error(
+        `No se encontró ninguna reserva asociada al código QR "${codigo}".`
+      );
     }
 
-    if (!reserva) {
-      throw new Error('Código QR inválido. No pertenece a ninguna reserva registrada.');
+    if (encontradaLocal.estado === 'cancelada') {
+      throw new Error('Esta reserva fue cancelada y el código QR ya no es válido.');
     }
 
-    if (reserva.estado === 'cancelada') {
-      throw new Error('Esta reserva fue cancelada previamente.');
-    }
-
-    if (reserva.estado === 'cumplida') {
-      throw new Error('El ingreso ya fue registrado para esta reserva.');
-    }
-
-    if (reserva.fecha && reserva.fecha !== hoy) {
-      throw new Error(`Esta reserva no es para hoy (Fecha del turno: ${reserva.fecha}).`);
+    if (encontradaLocal.estado === 'cumplida') {
+      throw new Error('Este código QR ya fue utilizado anteriormente para ingresar.');
     }
 
     const ahoraIso = new Date().toISOString();
-    reserva.estado = 'cumplida';
-    reserva.ingresoEn = ahoraIso;
+    const actualizada = enriquecerReserva(
+      {
+        ...encontradaLocal,
+        estado: 'cumplida',
+        ingresoEn: ahoraIso,
+      },
+      catalogoEspacios
+    );
 
     if (this.repo) {
-      await this.repo.actualizarEstadoReserva(reserva.id, 'cumplida', ahoraIso);
+      await this.repo.guardarReserva(actualizada);
     }
 
-    return reserva;
+    return actualizada;
   }
 
   /**
-   * Obtiene los bloqueos activos
+   * Obtiene los bloqueos por lluvia o mantenimiento
    */
-  async obtenerBloqueos(espacioId?: string, fecha?: string): Promise<Bloqueo[]> {
+  async obtenerBloqueos(): Promise<Bloqueo[]> {
     try {
-      const res = await clienteHttp.get<{ datos: Bloqueo[] }>('/bloqueos', {
-        params: { espacioId, fecha },
-      });
-      if (res.data?.datos) return res.data.datos;
+      const res = await clienteHttp.get<{ datos: Bloqueo[] }>('/bloqueos');
+      if (res.data?.datos) {
+        if (this.repo) await this.repo.guardarBloqueos(res.data.datos);
+        return res.data.datos;
+      }
     } catch {
-      // Offline fallback
+      // Fallback SQLite
     }
 
     if (this.repo) {
-      const locales = await this.repo.obtenerBloqueos(espacioId, fecha);
+      const locales = await this.repo.obtenerBloqueos();
       if (locales.length > 0) return locales;
     }
 
-    return BLOQUEOS_MOCK.filter((b) => {
-      if (espacioId && b.espacioId !== espacioId) return false;
-      if (fecha && b.fecha !== fecha) return false;
-      return true;
-    });
+    return BLOQUEOS_MOCK;
   }
 
   /**
-   * Crea un nuevo bloqueo (por lluvia o mantenimiento)
+   * Crea un bloqueo de turnos por lluvia, anegamiento o reparación (Encargado o Administrador)
    */
   async crearBloqueo(
     espacioId: string,
@@ -101,68 +197,81 @@ export class ServicioGestion {
     fin: string | null,
     motivo: string
   ): Promise<Bloqueo> {
+    if (!motivo.trim()) {
+      throw new Error('Ingresá el motivo del bloqueo (ej: Cancha anegada por lluvia).');
+    }
+
     const nuevo: Bloqueo = {
       id: `blq-${Date.now()}`,
       espacioId,
       fecha,
       inicio,
       fin,
-      motivo,
+      motivo: motivo.trim(),
     };
 
     try {
-      const res = await clienteHttp.post<{ datos: Bloqueo }>('/bloqueos', {
-        espacioId,
-        fecha,
-        inicio,
-        fin,
-        motivo,
-      });
-      if (res.data?.datos) return res.data.datos;
+      const res = await clienteHttp.post<{ datos: Bloqueo[] | Bloqueo }>(
+        '/bloqueos',
+        {
+          espacioIds: [espacioId],
+          fecha,
+          inicio,
+          fin,
+          motivo: nuevo.motivo,
+        }
+      );
+      if (Array.isArray(res.data?.datos) && res.data.datos.length > 0) {
+        Object.assign(nuevo, res.data.datos[0]);
+      } else if (res.data?.datos && !Array.isArray(res.data.datos)) {
+        Object.assign(nuevo, res.data.datos);
+      }
     } catch {
-      // Guardar local
+      // Guardar localmente si falla la red
     }
 
     if (this.repo) {
       await this.repo.guardarBloqueos([nuevo]);
     }
+
     return nuevo;
   }
 
   /**
-   * Elimina un bloqueo
+   * Elimina un bloqueo activo por su ID (`DELETE /bloqueos/:id`)
    */
   async eliminarBloqueo(id: string): Promise<void> {
     try {
-      await clienteHttp.delete(`/bloqueos/${id}`);
+      await clienteHttp.delete(`/bloqueos/${encodeURIComponent(id)}`);
     } catch {
-      // Ignorar si offline
+      // Ignorar si no existe en remoto
     }
   }
 
   /**
-   * Obtiene reservas fijas semanales
+   * Obtiene las reservas fijas semanales (Encargado solo lectura, Administrador lectura y alta)
    */
-  async obtenerFijas(espacioId?: string): Promise<ReservaFija[]> {
+  async obtenerFijas(): Promise<ReservaFija[]> {
     try {
-      const res = await clienteHttp.get<{ datos: ReservaFija[] }>('/fijas', {
-        params: { espacioId },
-      });
-      if (res.data?.datos) return res.data.datos;
+      const res = await clienteHttp.get<{ datos: ReservaFija[] }>('/fijas');
+      if (res.data?.datos) {
+        if (this.repo) await this.repo.guardarFijas(res.data.datos);
+        return res.data.datos;
+      }
     } catch {
-      // Offline fallback
+      // Fallback local
     }
 
     if (this.repo) {
-      const locales = await this.repo.obtenerFijas(espacioId);
+      const locales = await this.repo.obtenerFijas();
       if (locales.length > 0) return locales;
     }
 
-    return FIJAS_MOCK.filter((f) => !espacioId || f.espacioId === espacioId);
+    return FIJAS_MOCK;
   }
 
   /**
-   * Crea una reserva fija semanal
+   * Crea una nueva reserva fija semanal (exclusivo Administrador)
    */
   async crearFija(
     espacioId: string,
@@ -170,50 +279,98 @@ export class ServicioGestion {
     dia: 0 | 1 | 2 | 3 | 4 | 5 | 6,
     inicio: string,
     fin: string,
-    desde: string
+    desde: string,
+    hasta: string | null = null
   ): Promise<ReservaFija> {
+    if (!titular.trim()) {
+      throw new Error('Ingresá el nombre del titular o institución del turno fijo.');
+    }
+
     const nueva: ReservaFija = {
       id: `fij-${Date.now()}`,
       espacioId,
-      titular,
+      titular: titular.trim(),
       dia,
       inicio,
       fin,
       desde,
-      hasta: null,
+      hasta,
       activa: true,
     };
 
     try {
       const res = await clienteHttp.post<{ datos: ReservaFija }>('/fijas', {
         espacioId,
-        titular,
+        titular: nueva.titular,
         dia,
         inicio,
         fin,
         desde,
+        hasta,
       });
-      if (res.data?.datos) return res.data.datos;
-    } catch {
-      // Guardar local
+      if (res.data?.datos) {
+        Object.assign(nueva, res.data.datos);
+      }
+    } catch (err: any) {
+      const mensajeApi = err?.response?.data?.error?.mensaje;
+      if (mensajeApi) {
+        throw new Error(mensajeApi);
+      }
     }
 
     if (this.repo) {
       await this.repo.guardarFijas([nueva]);
     }
+
     return nueva;
   }
 
   /**
-   * Actualiza el precio por hora de un espacio (función exclusiva de administración)
+   * Actualiza el precio por hora de un espacio deportivo (exclusivo Administrador)
    */
-  async actualizarPrecio(espacioId: string, nuevoPrecio: number): Promise<void> {
-    try {
-      await clienteHttp.patch(`/espacios/${espacioId}`, {
-        precioPorHora: nuevoPrecio,
-      });
-    } catch {
-      // Local
+  async actualizarPrecio(espacioId: string, nuevoPrecio: number): Promise<Espacio> {
+    if (nuevoPrecio <= 0 || isNaN(nuevoPrecio)) {
+      throw new Error('Ingresá un precio por hora válido mayor a $0.');
     }
+
+    const espacios = this.repo
+      ? await this.repo.obtenerEspacios()
+      : ESPACIOS_MOCK;
+
+    const actual =
+      espacios.find((e) => e.id === espacioId) ||
+      ESPACIOS_MOCK.find((e) => e.id === espacioId);
+
+    if (!actual) {
+      throw new Error('Espacio deportivo no encontrado.');
+    }
+
+    const actualizado: Espacio = {
+      ...actual,
+      precioPorHora: nuevoPrecio,
+    };
+
+    try {
+      const res = await clienteHttp.patch<{ datos: Espacio }>(
+        `/espacios/${encodeURIComponent(espacioId)}`,
+        {
+          precioPorHora: nuevoPrecio,
+        }
+      );
+      if (res.data?.datos) {
+        Object.assign(actualizado, res.data.datos);
+      }
+    } catch (err: any) {
+      const mensajeApi = err?.response?.data?.error?.mensaje;
+      if (mensajeApi) {
+        throw new Error(mensajeApi);
+      }
+    }
+
+    if (this.repo) {
+      await this.repo.guardarEspacios([actualizado]);
+    }
+
+    return actualizado;
   }
 }

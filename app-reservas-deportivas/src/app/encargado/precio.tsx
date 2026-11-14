@@ -11,8 +11,10 @@ import {
   StyleSheet,
   Alert,
 } from 'react-native';
+import { Redirect } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useTema } from '../../contexto/tema';
+import { useSesion } from '../../contexto/sesion';
 import { ServicioGestion } from '../../servicios/gestion';
 import { ServicioReservas } from '../../servicios/reservas';
 import { RepositorioOffline } from '../../db/repositorio-offline';
@@ -22,6 +24,8 @@ import type { Espacio } from '../../tipos/index';
 export default function ActualizarPreciosPantalla() {
   const db = useSQLiteContext();
   const { colores } = useTema();
+  const { usuario } = useSesion();
+  const esAdmin = usuario?.rol === 'administrador';
 
   const repo = useMemo(() => new RepositorioOffline(db), [db]);
   const gestion = useMemo(() => new ServicioGestion(repo), [repo]);
@@ -80,6 +84,10 @@ export default function ActualizarPreciosPantalla() {
       setGuardando(false);
     }
   };
+
+  if (!esAdmin) {
+    return <Redirect href="/(tabs)/gestion" />;
+  }
 
   return (
     <ScrollView style={[styles.contenedor, { backgroundColor: colores.fondo }]}>

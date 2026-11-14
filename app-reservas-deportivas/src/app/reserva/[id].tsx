@@ -40,8 +40,7 @@ export default function DetalleReservaPantalla() {
     try {
       setCargando(true);
       setError(null);
-      const reservas = await servicio.obtenerMisReservas('');
-      const encontrada = reservas.find((r) => r.id === id);
+      const encontrada = await servicio.obtenerReservaPorId(id);
       if (!encontrada) {
         throw new Error('No encontramos la reserva solicitada.');
       }

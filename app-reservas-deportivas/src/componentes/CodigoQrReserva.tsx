@@ -1,29 +1,32 @@
 // src/componentes/CodigoQrReserva.tsx
-// Visualización del código QR y credencial de ingreso de la reserva (disponible 100% offline)
+// Componente visual de código QR real (ISO/IEC 18004) para acceso al complejo deportivo (disponible 100% offline)
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useTema } from '../contexto/tema';
 import { Icono } from './Icono';
+import { generarMatrizQr } from '../utils/qr';
 
-interface CodigoQrReservaProps {
+interface Props {
   codigoQr: string;
-  estado: string;
   espacioNombre?: string;
   fecha?: string;
   inicio?: string;
+  estado: string;
 }
 
-export const CodigoQrReserva: React.FC<CodigoQrReservaProps> = ({
+export function CodigoQrReserva({
   codigoQr,
-  estado,
   espacioNombre,
   fecha,
   inicio,
-}) => {
+  estado,
+}: Props) {
   const { colores } = useTema();
 
-  const esValida = estado === 'confirmada';
+  const esValido = estado === 'confirmada';
+  const matriz = useMemo(() => generarMatrizQr(codigoQr), [codigoQr]);
+  const tamanoModulo = Math.max(5, Math.floor(185 / matriz.length));
 
   return (
     <View
@@ -31,99 +34,178 @@ export const CodigoQrReserva: React.FC<CodigoQrReservaProps> = ({
         styles.contenedor,
         {
           backgroundColor: colores.tarjeta,
-          borderColor: colores.borde,
+          borderColor: esValido ? colores.primario : colores.borde,
         },
       ]}
     >
-      <View style={styles.marcoQr}>
-        {/* Representación gráfica de QR vectorizada */}
-        <View style={styles.cajaQr}>
-          <Icono nombre="qr-code" tamano={160} color="#0F172A" />
-        </View>
-      </View>
-
-      <Text style={[styles.codigoTexto, { color: colores.texto }]}>{codigoQr}</Text>
-
-      {espacioNombre && (
-        <Text style={[styles.espacioTexto, { color: colores.textoSecundario }]}>
-          {espacioNombre} · {fecha} {inicio && `a las ${inicio}`}
-        </Text>
-      )}
-
       <View
         style={[
-          styles.aviso,
+          styles.cabeceraEstado,
           {
-            backgroundColor: esValida ? colores.primarioClaro : colores.chipFondo,
+            backgroundColor: esValido ? colores.primario : colores.chipFondo,
           },
         ]}
       >
         <Icono
-          nombre={esValida ? 'checkmark-circle-outline' : 'information-circle-outline'}
-          tamano={16}
-          color={esValida ? colores.primario : colores.textoSecundario}
+          nombre={esValido ? 'checkmark-circle' : 'information-circle'}
+          tamano={18}
+          color={esValido ? '#FFFFFF' : colores.textoSecundario}
         />
         <Text
           style={[
-            styles.avisoTexto,
-            { color: esValida ? colores.primario : colores.textoSecundario },
+            styles.textoEstado,
+            { color: esValido ? '#FFFFFF' : colores.textoSecundario },
           ]}
         >
-          {esValida
-            ? 'Presentá este código en la entrada del complejo deportivo.'
-            : `Reserva ${estado}. No válida para ingreso.`}
+          {esValido
+            ? 'PASE DE INGRESO HABILITADO'
+            : `RESERVA ${estado.toUpperCase()}`}
         </Text>
+      </View>
+
+      <View style={styles.cuerpo}>
+        {/* Matriz QR real ISO/IEC 18004 sobre fondo blanco con zona silenciosa (quiet zone) */}
+        <View style={styles.cajaQrBlanca}>
+          <View style={styles.qrMatriz}>
+            {matriz.map((fila, rIdx) => (
+              <View key={rIdx} style={styles.qrFila}>
+                {fila.map((oscuro, cIdx) => (
+                  <View
+                    key={cIdx}
+                    style={{
+                      width: tamanoModulo,
+                      height: tamanoModulo,
+                      backgroundColor: oscuro ? '#000000' : '#FFFFFF',
+                    }}
+                  />
+                ))}
+              </View>
+            ))}
+          </View>
+          <View style={styles.selloVillaguay}>
+            <Text style={styles.selloTexto}>VILLAGUAY DEPORTES</Text>
+          </View>
+        </View>
+
+        <Text style={[styles.codigoTexto, { color: colores.texto }]} selectable>
+          {codigoQr}
+        </Text>
+
+        {espacioNombre && (
+          <Text style={[styles.espacioTexto, { color: colores.primario }]}>
+            {espacioNombre}
+          </Text>
+        )}
+
+        {fecha && inicio && (
+          <Text style={[styles.turnoTexto, { color: colores.textoSecundario }]}>
+            Fecha: {fecha} • Horario: {inicio} hs
+          </Text>
+        )}
+
+        <View
+          style={[
+            styles.notaOffline,
+            { backgroundColor: colores.fondo, borderColor: colores.borde },
+          ]}
+        >
+          <Icono nombre="cloud-done-outline" tamano={16} color={colores.exito} />
+          <Text style={[styles.notaTexto, { color: colores.textoSecundario }]}>
+            Disponible sin conexión a internet. Presentalo al encargado al llegar al predio.
+          </Text>
+        </View>
       </View>
     </View>
   );
-};
+}
 
 const styles = StyleSheet.create({
   contenedor: {
     borderRadius: 20,
-    borderWidth: 1,
-    padding: 20,
-    alignItems: 'center',
+    borderWidth: 2,
+    overflow: 'hidden',
     marginVertical: 12,
-  },
-  marcoQr: {
-    padding: 12,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    elevation: 3,
+    elevation: 4,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
   },
-  cajaQr: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  codigoTexto: {
-    fontSize: 18,
-    fontWeight: '800',
-    letterSpacing: 1.5,
-    marginTop: 16,
-    fontVariant: ['tabular-nums'],
-  },
-  espacioTexto: {
-    fontSize: 13,
-    marginTop: 4,
-  },
-  aviso: {
+  cabeceraEstado: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    justifyContent: 'center',
+    paddingVertical: 10,
+    gap: 6,
+  },
+  textoEstado: {
+    fontSize: 12,
+    fontWeight: '800',
+    letterSpacing: 0.8,
+  },
+  cuerpo: {
+    padding: 20,
+    alignItems: 'center',
+  },
+  cajaQrBlanca: {
+    backgroundColor: '#FFFFFF',
+    padding: 16,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    marginBottom: 14,
+  },
+  qrMatriz: {
+    backgroundColor: '#FFFFFF',
+    padding: 8,
+  },
+  qrFila: {
+    flexDirection: 'row',
+  },
+  selloVillaguay: {
+    backgroundColor: '#047857',
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 6,
+    marginTop: 8,
+  },
+  selloTexto: {
+    color: '#FFFFFF',
+    fontSize: 9,
+    fontWeight: '800',
+    letterSpacing: 1,
+  },
+  codigoTexto: {
+    fontSize: 16,
+    fontWeight: '800',
+    letterSpacing: 1.2,
+    marginBottom: 6,
+  },
+  espacioTexto: {
+    fontSize: 15,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  turnoTexto: {
+    fontSize: 13,
+    marginTop: 4,
+    marginBottom: 16,
+  },
+  notaOffline: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingVertical: 8,
     paddingHorizontal: 12,
-    borderRadius: 8,
-    marginTop: 16,
-    width: '100%',
+    borderRadius: 10,
+    borderWidth: 1,
+    gap: 8,
+    marginTop: 4,
   },
-  avisoTexto: {
-    fontSize: 12,
-    fontWeight: '600',
-    flexShrink: 1,
+  notaTexto: {
+    fontSize: 11,
+    flex: 1,
+    lineHeight: 15,
   },
 });
