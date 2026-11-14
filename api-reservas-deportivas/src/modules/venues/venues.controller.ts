@@ -1,10 +1,25 @@
-import { Controller, Get, Param, Query } from '@nestjs/common';
-import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  Param,
+  Post,
+  Query,
+} from '@nestjs/common';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import type { RespuestaLista, RespuestaUno } from '../../../contract/api.js';
 import type { Deporte, Espacio } from '../../../contract/types.js';
-import { Publico } from '../../common/auth/decorators.js';
+import { Publico, Roles } from '../../common/auth/decorators.js';
+import { respuestaUno } from '../../common/response/response.js';
 import { PaginacionDto } from '../../common/response/pagination.js';
 import { FiltrosEspaciosDto } from './dto/venue-filters.dto.js';
+import { AgregarImagenDto } from './dto/venue-images.dto.js';
 import { EspaciosServicio } from './venues.service.js';
 
 const EJEMPLO_ESPACIO = {
@@ -92,5 +107,29 @@ export class EspaciosControlador {
   })
   detalle(@Param('id') id: string): Promise<RespuestaUno<Espacio>> {
     return this.servicio.detalle(id);
+  }
+
+  @Post('espacios/:id/imagenes')
+  @HttpCode(201)
+  @Roles('encargado', 'administrador')
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Agregar una foto a un espacio',
+    description:
+      'Encargado o administrador. Primero subí la foto con `POST /archivos` y después mandá ' +
+      'acá la `url` que devolvió. La foto nueva queda primera y `GET /espacios/:id` la ' +
+      'devuelve junto con las demás. Repetir la misma URL no la duplica.\n\n' +
+      'Errores: VALIDACION_FALLIDA (400), NO_AUTENTICADO (401), SIN_PERMISO (403), ' +
+      'ESPACIO_NO_ENCONTRADO (404), ARCHIVO_NO_SUBIDO (422), ALMACEN_NO_DISPONIBLE (503).',
+  })
+  @ApiResponse({
+    status: 201,
+    schema: { example: { datos: EJEMPLO_ESPACIO, meta: null } },
+  })
+  async agregarImagen(
+    @Param('id') id: string,
+    @Body() dto: AgregarImagenDto,
+  ): Promise<RespuestaUno<Espacio>> {
+    return respuestaUno(await this.servicio.agregarImagen(id, dto.url));
   }
 }

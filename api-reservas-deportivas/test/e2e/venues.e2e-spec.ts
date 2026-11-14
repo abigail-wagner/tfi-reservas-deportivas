@@ -3,6 +3,8 @@ import type { Deporte, Espacio } from '../../contract/types.js';
 import { type AppDePrueba, crearApp } from '../utilities/create-app.js';
 import { esperarContrato, esperarError } from '../utilities/contract.js';
 import { crearDeporte, crearEspacio } from '../utilities/venues.js';
+import { crearUsuario, registrarJugador } from '../utilities/users.js';
+import { jpeg } from '../utilities/files.js';
 
 describe('GET /deportes — PRD §2, públicos', () => {
   let a: AppDePrueba;
@@ -253,6 +255,140 @@ describe('GET /espacios/:id', () => {
       await a.http().get('/espacios/123'),
       404,
       'ESPACIO_NO_ENCONTRADO',
+    );
+  });
+});
+
+describe('POST /espacios/:id/imagenes — agregar foto a un espacio', () => {
+  let a: AppDePrueba;
+  let encargadoToken: string;
+  let jugadorToken: string;
+  let espacioId: string;
+  let fotoUrl: string;
+
+  beforeAll(async () => {
+    a = await crearApp();
+    const encargado = await crearUsuario(a, 'encargado');
+    encargadoToken = encargado.token;
+    const jugador = await registrarJugador(a);
+    jugadorToken = jugador.token;
+
+    const dep = await crearDeporte(a);
+    const esp = await crearEspacio(a, {
+      deporteId: dep.id,
+      imagenes: ['imagenes/2026/09/inicial.jpg'],
+    });
+    espacioId = esp.id;
+
+    // Subir un archivo válido con POST /archivos
+    const subida = await a
+      .http()
+      .post('/archivos')
+      .set('Authorization', `Bearer ${encargadoToken}`)
+      .attach('archivo', jpeg(), 'foto.jpg')
+      .expect(201);
+    fotoUrl = subida.body.datos.url;
+  });
+  afterAll(() => a.cerrar());
+
+  it('201 agrega la imagen primera y no duplica si se manda dos veces', async () => {
+    const res = await a
+      .http()
+      .post(`/espacios/${espacioId}/imagenes`)
+      .set('Authorization', `Bearer ${encargadoToken}`)
+      .send({ url: fotoUrl })
+      .expect(201);
+
+    const espActualizado = esperarContrato<Espacio>(res.body, 'Espacio');
+    expect(new URL(espActualizado.imagenes[0]).pathname).toBe(
+      new URL(fotoUrl).pathname,
+    );
+    expect(espActualizado.imagenes.length).toBe(2);
+
+    // Repetir la misma URL no la duplica
+    const resRepetida = await a
+      .http()
+      .post(`/espacios/${espacioId}/imagenes`)
+      .set('Authorization', `Bearer ${encargadoToken}`)
+      .send({ url: fotoUrl })
+      .expect(201);
+
+    const espRepetido = esperarContrato<Espacio>(resRepetida.body, 'Espacio');
+    expect(new URL(espRepetido.imagenes[0]).pathname).toBe(
+      new URL(fotoUrl).pathname,
+    );
+    expect(espRepetido.imagenes.length).toBe(2);
+  });
+
+  it('401 NO_AUTENTICADO si no hay token', async () => {
+    esperarError(
+      await a
+        .http()
+        .post(`/espacios/${espacioId}/imagenes`)
+        .send({ url: fotoUrl }),
+      401,
+      'NO_AUTENTICADO',
+    );
+  });
+
+  it('403 SIN_PERMISO si el usuario es jugador', async () => {
+    esperarError(
+      await a
+        .http()
+        .post(`/espacios/${espacioId}/imagenes`)
+        .set('Authorization', `Bearer ${jugadorToken}`)
+        .send({ url: fotoUrl }),
+      403,
+      'SIN_PERMISO',
+    );
+  });
+
+  it('404 ESPACIO_NO_ENCONTRADO si el espacio no existe', async () => {
+    esperarError(
+      await a
+        .http()
+        .post('/espacios/esp-9999/imagenes')
+        .set('Authorization', `Bearer ${encargadoToken}`)
+        .send({ url: fotoUrl }),
+      404,
+      'ESPACIO_NO_ENCONTRADO',
+    );
+  });
+
+  it('422 ARCHIVO_NO_SUBIDO si la URL no es de un archivo existente en la API', async () => {
+    esperarError(
+      await a
+        .http()
+        .post(`/espacios/${espacioId}/imagenes`)
+        .set('Authorization', `Bearer ${encargadoToken}`)
+        .send({
+          url: 'http://localhost:3000/archivos/imagenes/2026/11/inexistente12345678.jpg',
+        }),
+      422,
+      'ARCHIVO_NO_SUBIDO',
+    );
+
+    // URL externa que no es de esta API
+    esperarError(
+      await a
+        .http()
+        .post(`/espacios/${espacioId}/imagenes`)
+        .set('Authorization', `Bearer ${encargadoToken}`)
+        .send({ url: 'https://images.unsplash.com/photo-123.jpg' }),
+      422,
+      'ARCHIVO_NO_SUBIDO',
+    );
+  });
+
+  it('400 VALIDACION_FALLIDA con body inválido', async () => {
+    esperarError(
+      await a
+        .http()
+        .post(`/espacios/${espacioId}/imagenes`)
+        .set('Authorization', `Bearer ${encargadoToken}`)
+        .send({ url: 'not-a-url' }),
+      400,
+      'VALIDACION_FALLIDA',
     );
   });
 });

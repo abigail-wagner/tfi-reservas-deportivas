@@ -35,3 +35,10 @@ coverage/
 *-firebase-adminsdk-*.json
 credentials.json
 *.keystore
+
+# Logs y enlaces temporales
+build-log.bin
+eas-log.txt
+fulbito/
+api/
+

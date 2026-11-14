@@ -15,6 +15,8 @@ import {
   respuestaUno,
 } from '../../common/response/response.js';
 import { normalizarTexto } from '../../common/text/text.js';
+import { ArchivosServicio } from '../../common/files/files.service.js';
+import { claveDeImagenDeUrl } from '../../common/files/keys.js';
 import { DeporteEntidad } from './sport.entity.js';
 import { EspacioEntidad } from './venue.entity.js';
 import type { FiltrosEspaciosDto } from './dto/venue-filters.dto.js';
@@ -27,6 +29,7 @@ export class EspaciosServicio {
     private readonly deportes: Repository<DeporteEntidad>,
     @InjectRepository(EspacioEntidad)
     private readonly espacios: Repository<EspacioEntidad>,
+    private readonly archivos: ArchivosServicio,
   ) {}
 
   async listarDeportes(p: PaginacionDto): Promise<RespuestaLista<Deporte>> {
@@ -61,5 +64,26 @@ export class EspaciosServicio {
       : null;
     if (!fila) throw new ErrorApi('ESPACIO_NO_ENCONTRADO');
     return respuestaUno(aContrato(fila));
+  }
+
+  /**
+   * Asocia a un espacio una foto que ya se subió con `POST /archivos`.
+   * La más nueva va primera, que es el orden en el que la muestra la app.
+   */
+  async agregarImagen(id: string, url: string): Promise<Espacio> {
+    const fila = esIdDe('esp', id)
+      ? await this.espacios.findOneBy({ id })
+      : null;
+    if (!fila) throw new ErrorApi('ESPACIO_NO_ENCONTRADO');
+
+    const clave = claveDeImagenDeUrl(url);
+    if (clave === null || !(await this.archivos.existe(clave)))
+      throw new ErrorApi('ARCHIVO_NO_SUBIDO');
+
+    const actuales = Array.isArray(fila.imagenes) ? fila.imagenes : [];
+    const imagenes = [clave, ...actuales.filter((k) => k !== clave)];
+    await this.espacios.update({ id }, { imagenes });
+    fila.imagenes = imagenes;
+    return aContrato(fila);
   }
 }

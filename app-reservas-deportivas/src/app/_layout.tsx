@@ -5,6 +5,7 @@ import React, { useEffect } from 'react';
 import { Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SQLiteProvider } from 'expo-sqlite';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as Notifications from 'expo-notifications';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { TemaProvider, useTema } from '../contexto/tema';
@@ -106,14 +107,16 @@ function NavegacionRaiz() {
 
 export default function LayoutPrincipal() {
   return (
-    <SQLiteProvider databaseName="villaguay_reservas.db" onInit={migrarBaseDeDatos}>
-      <QueryClientProvider client={queryClient}>
-        <TemaProvider>
-          <SesionProvider>
-            <NavegacionRaiz />
-          </SesionProvider>
-        </TemaProvider>
-      </QueryClientProvider>
-    </SQLiteProvider>
+    <SafeAreaProvider>
+      <SQLiteProvider databaseName="villaguay_reservas.db" onInit={migrarBaseDeDatos}>
+        <QueryClientProvider client={queryClient}>
+          <TemaProvider>
+            <SesionProvider>
+              <NavegacionRaiz />
+            </SesionProvider>
+          </TemaProvider>
+        </QueryClientProvider>
+      </SQLiteProvider>
+    </SafeAreaProvider>
   );
 }

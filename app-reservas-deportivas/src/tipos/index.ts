@@ -146,3 +146,5 @@ export interface PruebaDePush {
 export interface TurnoDetalleConEspacio extends Turno {
   espacio: Espacio;
 }
+
+export type { CodigoError } from './api';

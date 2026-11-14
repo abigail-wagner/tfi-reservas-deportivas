@@ -228,6 +228,7 @@ encargado ubica a quien no vino).
 | `TIPO_DE_ARCHIVO_NO_PERMITIDO` | 415 | Ese tipo de archivo no se puede subir. Usá una foto, un audio o un video. |
 | `RANGO_NO_VALIDO` | 416 | No pudimos leer esa parte del archivo. |
 | `ANTES_DE_TIEMPO` | 422 | Todavía no se puede marcar como ausente. |
+| `ARCHIVO_NO_SUBIDO` | 422 | Esa foto no está subida a la API. Subila con POST /archivos y mandá la URL que devuelve. |
 | `CANCELACION_FUERA_DE_PLAZO` | 422 | Faltan menos de cuatro horas: avisale al encargado para cancelar. |
 | `CAPACIDAD_EXCEDIDA` | 422 | Son más personas de las que entran en este espacio. |
 | `CODIGO_DE_OTRO_DIA` | 422 | Esa reserva no es para hoy. |

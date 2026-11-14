@@ -122,6 +122,11 @@ export const CATALOGO = {
     estado: 416,
     mensaje: 'No pudimos leer esa parte del archivo.',
   },
+  ARCHIVO_NO_SUBIDO: {
+    estado: 422,
+    mensaje:
+      'Esa foto no está subida a la API. Subila con POST /archivos y mandá la URL que devuelve.',
+  },
   ERROR_INTERNO: {
     estado: 500,
     mensaje: 'Algo salió mal de nuestro lado. Probá de nuevo en un rato.',

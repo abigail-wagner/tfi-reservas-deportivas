@@ -73,3 +73,64 @@ clienteHttp.interceptors.response.use(
     );
   }
 );
+
+export { ApiError as ErrorApi };
+
+export const USAR_MOCKS = false;
+
+export async function simular<T>(
+  fn: (token: string) => Promise<{ datos: T; meta?: any } | T>
+): Promise<{ datos: T; meta: any }> {
+  const token = (await SecureStore.getItemAsync(TOKEN_SECURE_KEY)) || '';
+  const res = await fn(token);
+  if (res && typeof res === 'object' && 'datos' in res) {
+    return { datos: (res as any).datos, meta: (res as any).meta ?? null };
+  }
+  return { datos: res as T, meta: null };
+}
+
+export async function pedir<T>(
+  ruta: string,
+  opciones: { metodo?: string; cuerpo?: any; params?: any } = {}
+): Promise<{ datos: T; meta: any }> {
+  const metodo = (opciones.metodo || 'GET').toLowerCase();
+  const res = await clienteHttp.request<{ datos: T; meta: any }>({
+    url: ruta,
+    method: metodo,
+    data: opciones.cuerpo,
+    params: opciones.params,
+  });
+  return res.data;
+}
+
+export async function pedirLista<T>(
+  ruta: string,
+  params?: any
+): Promise<{ datos: T[]; meta: any }> {
+  return pedir<T[]>(ruta, { metodo: 'GET', params });
+}
+
+export async function subirArchivo(
+  uriLocal: string
+): Promise<{ url: string; tipo: 'imagen' | 'audio' | 'video'; bytes: number }> {
+  const formData = new FormData();
+  const nombre = uriLocal.split('/').pop() || 'foto.jpg';
+
+  // @ts-expect-error FormData de React Native admite objeto con uri, name, type
+  formData.append('archivo', {
+    uri: uriLocal,
+    name: nombre,
+    type: 'image/jpeg',
+  });
+
+  const res = await clienteHttp.post<{
+    datos: { url: string; tipo: 'imagen' | 'audio' | 'video'; bytes: number };
+  }>('/archivos', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+
+  return res.data.datos;
+}
+

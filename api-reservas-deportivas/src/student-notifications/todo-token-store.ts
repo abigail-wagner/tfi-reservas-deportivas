@@ -8,12 +8,13 @@ import {
   AlmacenTokensPush,
   type Plataforma,
 } from '../common/notifications/ports.js';
+import { ErrorApi } from '../common/errors/error-api.js';
 
 @Injectable()
 export class AlmacenTokensPorHacer extends AlmacenTokensPush {
   constructor(
     @InjectRepository(DispositivoEntidad)
-    private readonly repo: Repository<DispositivoEntidad>,
+    private readonly repo?: Repository<DispositivoEntidad>,
   ) {
     super();
   }
@@ -26,6 +27,7 @@ export class AlmacenTokensPorHacer extends AlmacenTokensPush {
     tokenExpo: string,
     plataforma: Plataforma,
   ): Promise<void> {
+    if (!this.repo) throw new ErrorApi('NO_IMPLEMENTADO');
     await this.repo.upsert(
       {
         tokenExpo,
@@ -38,12 +40,14 @@ export class AlmacenTokensPorHacer extends AlmacenTokensPush {
 
   // Sacar ese token de la base. Si no estaba, no es un error.
   async borrar(tokenExpo: string): Promise<void> {
+    if (!this.repo) throw new ErrorApi('NO_IMPLEMENTADO');
     await this.repo.delete({ tokenExpo });
   }
 
   // Devolver todos los tokens de esos usuarios (cada usuario puede tener
   // varios teléfonos). Si la lista de usuarios viene vacía, devolvé una lista vacía.
   async tokensDe(usuarioIds: string[]): Promise<string[]> {
+    if (!this.repo) throw new ErrorApi('NO_IMPLEMENTADO');
     if (!usuarioIds || usuarioIds.length === 0) {
       return [];
     }
@@ -55,6 +59,7 @@ export class AlmacenTokensPorHacer extends AlmacenTokensPush {
 
   // Borrar de la base los tokens que Expo dijo que ya no sirven.
   async descartar(tokens: string[]): Promise<void> {
+    if (!this.repo) throw new ErrorApi('NO_IMPLEMENTADO');
     if (!tokens || tokens.length === 0) {
       return;
     }

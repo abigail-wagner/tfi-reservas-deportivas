@@ -26,3 +26,30 @@ export function urlDeArchivo(clave: string): string {
     throw new Error('urlDeArchivo se llamó fuera de un pedido.');
   return `${origen}/archivos/${clave}`;
 }
+
+/**
+ * Clave de una imagen a partir de la URL que devolvió `POST /archivos`.
+ * Sólo acepta URLs http(s) de esta API con una clave de imagen válida; el host
+ * no se compara porque el mismo archivo puede haberse subido por la LAN y
+ * asociado después por el dominio público.
+ */
+export function claveDeImagenDeUrl(url: string): string | null {
+  let ruta: string;
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return null;
+    ruta = parsed.pathname;
+  } catch {
+    return null;
+  }
+  const prefijo = '/archivos/';
+  if (!ruta.startsWith(prefijo)) return null;
+  let clave: string;
+  try {
+    clave = decodeURIComponent(ruta.slice(prefijo.length));
+  } catch {
+    return null;
+  }
+  return clave.startsWith('imagenes/') && esClaveValida(clave) ? clave : null;
+}
+

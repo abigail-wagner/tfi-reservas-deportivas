@@ -9,7 +9,7 @@ describe('AGENTS §13 — README con la tabla de errores del catálogo', () => {
     const readme = readFileSync(
       join(import.meta.dirname, '../../README.md'),
       'utf8',
-    );
+    ).replace(/\r\n/g, '\n');
     const m = /<!-- errores:inicio -->\n([\s\S]*?)\n<!-- errores:fin -->/.exec(
       readme,
     );

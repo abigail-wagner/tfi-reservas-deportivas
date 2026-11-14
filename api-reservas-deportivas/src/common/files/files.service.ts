@@ -52,6 +52,11 @@ export class ArchivosServicio {
     return this.envolver(() => this.almacen.leer(clave, rango));
   }
 
+  /** ¿La clave existe en el almacén? (para validar URLs que llegan en un recurso). */
+  existe(clave: string): Promise<boolean> {
+    return this.envolver(() => this.almacen.existe(clave));
+  }
+
   private async envolver<T>(fn: () => Promise<T>): Promise<T> {
     try {
       return await fn();

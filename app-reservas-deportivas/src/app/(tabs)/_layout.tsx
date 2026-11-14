@@ -2,12 +2,32 @@
 // Navegación de pestañas inferiores para la app móvil
 
 import React from 'react';
+import { Platform } from 'react-native';
 import { Tabs } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTema } from '../../contexto/tema';
 import { Icono } from '../../componentes/Icono';
 
 export default function LayoutPestanas() {
   const { colores } = useTema();
+  const insets = useSafeAreaInsets();
+
+  // En Android con barra de navegación por software (3 botones o barra de gestos),
+  // insets.bottom contiene la altura que ocupa la barra del sistema.
+  // Al sumarlo dinámicamente al padding y al alto total, los botones e íconos
+  // quedan elevados y nunca superpuestos con los controles del dispositivo.
+  const esAndroid = Platform.OS === 'android';
+  const esAndroidWeb =
+    Platform.OS === 'web' &&
+    typeof navigator !== 'undefined' &&
+    /android/i.test(navigator.userAgent);
+  const esDispositivoAndroid = esAndroid || esAndroidWeb;
+
+  const paddingInferior = insets.bottom > 0
+    ? insets.bottom + 8
+    : (esDispositivoAndroid ? 18 : 10);
+
+  const alturaTabBar = 60 + paddingInferior;
 
   return (
     <Tabs
@@ -19,9 +39,9 @@ export default function LayoutPestanas() {
         tabBarStyle: {
           backgroundColor: colores.tarjeta,
           borderTopColor: colores.borde,
-          height: 60,
-          paddingBottom: 8,
-          paddingTop: 6,
+          height: alturaTabBar,
+          paddingBottom: paddingInferior,
+          paddingTop: 8,
         },
         tabBarActiveTintColor: colores.primario,
         tabBarInactiveTintColor: colores.textoSecundario,

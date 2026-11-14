@@ -9,15 +9,19 @@ import {
   TouchableOpacity,
   StyleSheet,
   Dimensions,
+  Alert,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Image } from 'expo-image';
+import * as ImagePicker from 'expo-image-picker';
 import { useSQLiteContext } from 'expo-sqlite';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { useTema } from '../../contexto/tema';
 import { useSesion } from '../../contexto/sesion';
 import { ServicioReservas } from '../../servicios/reservas';
 import { RepositorioOffline } from '../../db/repositorio-offline';
+import { servicioEspacios } from '../../servicios/espacios';
 import { ReproductorCancha } from '../../componentes/ReproductorCancha';
 import { EstadoPantalla } from '../../componentes/EstadoPantalla';
 import { Icono } from '../../componentes/Icono';
@@ -29,6 +33,7 @@ export default function DetalleEspacioPantalla() {
   const db = useSQLiteContext();
   const { colores } = useTema();
   const { usuario, alternarFavorito } = useSesion();
+  const insets = useSafeAreaInsets();
 
   const repo = useMemo(() => new RepositorioOffline(db), [db]);
   const servicio = useMemo(() => new ServicioReservas(repo), [repo]);
@@ -37,8 +42,10 @@ export default function DetalleEspacioPantalla() {
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [imagenIndice, setImagenIndice] = useState(0);
+  const [subiendoFoto, setSubiendoFoto] = useState(false);
 
   const esFavorito = espacio && usuario?.espaciosFavoritos?.includes(espacio.id);
+  const esPersonal = usuario?.rol === 'encargado' || usuario?.rol === 'administrador';
 
   useEffect(() => {
     async function cargar() {
@@ -63,11 +70,49 @@ export default function DetalleEspacioPantalla() {
     await alternarFavorito(espacio.id);
   };
 
+  const handleAgregarFoto = async () => {
+    if (!id) return;
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permiso necesario', 'Se necesita acceso a la galería para subir una foto.');
+        return;
+      }
+
+      const res = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        quality: 0.8,
+      });
+
+      if (!res.canceled && res.assets[0]?.uri) {
+        setSubiendoFoto(true);
+        const local = res.assets[0].uri;
+        const actualizado = await servicioEspacios.agregarFoto(id, local);
+        setEspacio(actualizado);
+        if (repo) {
+          await repo.guardarEspacios([actualizado]);
+        }
+        setImagenIndice(0);
+        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        Alert.alert('Éxito', 'La foto de la cancha fue agregada correctamente y guardada en el servidor.');
+      }
+    } catch (err: any) {
+      Alert.alert('Error al subir foto', err?.message || 'No se pudo subir la foto.');
+    } finally {
+      setSubiendoFoto(false);
+    }
+  };
+
   return (
     <EstadoPantalla cargando={cargando} error={error}>
       {espacio && (
         <View style={[styles.contenedor, { backgroundColor: colores.fondo }]}>
-          <ScrollView contentContainerStyle={styles.scrollContenido}>
+          <ScrollView
+            contentContainerStyle={[
+              styles.scrollContenido,
+              { paddingBottom: 100 + insets.bottom },
+            ]}
+          >
             {/* Galería de Fotos */}
             <View style={styles.galeriaContenedor}>
               <Image
@@ -88,6 +133,24 @@ export default function DetalleEspacioPantalla() {
                   color={esFavorito ? colores.peligro : colores.textoSecundario}
                 />
               </TouchableOpacity>
+
+              {esPersonal && (
+                <TouchableOpacity
+                  style={[styles.botonAgregarFotoFlotante, { backgroundColor: colores.primario }]}
+                  onPress={handleAgregarFoto}
+                  disabled={subiendoFoto}
+                  activeOpacity={0.8}
+                >
+                  <Icono
+                    nombre={subiendoFoto ? 'hourglass-outline' : 'camera-outline'}
+                    tamano={18}
+                    color="#FFFFFF"
+                  />
+                  <Text style={styles.botonAgregarFotoTexto}>
+                    {subiendoFoto ? 'Subiendo...' : 'Agregar Foto'}
+                  </Text>
+                </TouchableOpacity>
+              )}
 
               {espacio.imagenes.length > 1 && (
                 <View style={styles.indicadoresContenedor}>
@@ -198,7 +261,11 @@ export default function DetalleEspacioPantalla() {
           <View
             style={[
               styles.barraInferior,
-              { backgroundColor: colores.tarjeta, borderTopColor: colores.borde },
+              {
+                backgroundColor: colores.tarjeta,
+                borderTopColor: colores.borde,
+                paddingBottom: insets.bottom > 0 ? insets.bottom + 12 : 14,
+              },
             ]}
           >
             <View>
@@ -255,6 +322,27 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 4,
+  },
+  botonAgregarFotoFlotante: {
+    position: 'absolute',
+    top: 16,
+    left: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+  },
+  botonAgregarFotoTexto: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 13,
   },
   indicadoresContenedor: {
     position: 'absolute',

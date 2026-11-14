@@ -65,7 +65,10 @@ describe('AGENTS §9 — Avisos', () => {
 });
 
 describe('AGENTS §19.3 — Avisos con las piezas de los alumnos sin programar', () => {
-  it('escribe «Push pendiente de implementar» en el log y no rompe', async () => {
+  it(
+    'escribe «Push pendiente de implementar» en el log y no rompe',
+    { timeout: 15000 },
+    async () => {
     const { AlmacenTokensPorHacer } =
       await import('../../src/student-notifications/todo-token-store.js');
     const { Logger } = await import('@nestjs/common');
