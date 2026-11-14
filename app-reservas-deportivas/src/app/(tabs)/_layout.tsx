@@ -6,11 +6,16 @@ import { Platform } from 'react-native';
 import { Tabs } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTema } from '../../contexto/tema';
+import { useSesion } from '../../contexto/sesion';
 import { Icono } from '../../componentes/Icono';
 
 export default function LayoutPestanas() {
   const { colores } = useTema();
+  const { usuario } = useSesion();
   const insets = useSafeAreaInsets();
+
+  const puedeVerGestion =
+    usuario?.rol === 'encargado' || usuario?.rol === 'administrador';
 
   // En Android con barra de navegación por software (3 botones o barra de gestos),
   // la barra nativa del sistema operativo ocupa entre 48dp y 54dp de la parte inferior.
@@ -94,6 +99,7 @@ export default function LayoutPestanas() {
       <Tabs.Screen
         name="gestion"
         options={{
+          href: puedeVerGestion ? undefined : null,
           title: 'Gestión',
           tabBarLabel: 'Gestión',
           tabBarIcon: ({ color, focused }) => (

@@ -4,12 +4,104 @@
 import axios, { AxiosError } from 'axios';
 import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
-import type { RespuestaError } from '../tipos/index';
+import type { Espacio, RespuestaError } from '../tipos/index';
 
 // URL pública del backend de Reservas Deportivas
 export const DEFAULT_API_URL = 'https://reservas.tail92fdf5.ts.net';
 
 export const TOKEN_SECURE_KEY = 'villaguay_auth_token';
+
+let tokenEnMemoria: string | null = null;
+
+export async function leerItemSeguro(clave: string): Promise<string | null> {
+  try {
+    if (Platform.OS === 'web') {
+      if (typeof localStorage !== 'undefined') {
+        return localStorage.getItem(clave);
+      }
+      return clave === TOKEN_SECURE_KEY ? tokenEnMemoria : null;
+    }
+    const val = await SecureStore.getItemAsync(clave);
+    if (clave === TOKEN_SECURE_KEY && val) {
+      tokenEnMemoria = val;
+    }
+    return val;
+  } catch {
+    return clave === TOKEN_SECURE_KEY ? tokenEnMemoria : null;
+  }
+}
+
+export async function guardarItemSeguro(clave: string, valor: string): Promise<void> {
+  if (clave === TOKEN_SECURE_KEY) {
+    tokenEnMemoria = valor;
+  }
+  try {
+    if (Platform.OS === 'web') {
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem(clave, valor);
+      }
+      return;
+    }
+    await SecureStore.setItemAsync(clave, valor);
+  } catch {
+    // Fallback en memoria si falla el almacenamiento seguro
+  }
+}
+
+export async function borrarItemSeguro(clave: string): Promise<void> {
+  if (clave === TOKEN_SECURE_KEY) {
+    tokenEnMemoria = null;
+  }
+  try {
+    if (Platform.OS === 'web') {
+      if (typeof localStorage !== 'undefined') {
+        localStorage.removeItem(clave);
+      }
+      return;
+    }
+    await SecureStore.deleteItemAsync(clave);
+  } catch {
+    // Ignorar error
+  }
+}
+
+export function normalizarUrlImagen(url: string | undefined | null): string {
+  if (!url) return '';
+  const limpia = url.trim();
+  if (!limpia) return '';
+  const base = (process.env.EXPO_PUBLIC_API_URL || DEFAULT_API_URL).replace(/\/+$/, '');
+  if (limpia.startsWith('/archivos/')) {
+    return `${base}${limpia}`;
+  }
+  if (limpia.startsWith('imagenes/') || limpia.startsWith('archivos/')) {
+    const ruta = limpia.startsWith('archivos/') ? `/${limpia}` : `/archivos/${limpia}`;
+    return `${base}${ruta}`;
+  }
+  try {
+    const parsed = new URL(limpia);
+    if (
+      parsed.pathname.startsWith('/archivos/') &&
+      (parsed.hostname === 'localhost' ||
+        parsed.hostname === '127.0.0.1' ||
+        parsed.hostname === '10.0.2.2' ||
+        parsed.hostname.startsWith('192.168.'))
+    ) {
+      return `${base}${parsed.pathname}`;
+    }
+  } catch {
+    // URI local (file://, content://, data:)
+  }
+  return limpia;
+}
+
+export function normalizarEspacio(espacio: Espacio): Espacio {
+  return {
+    ...espacio,
+    imagenes: Array.isArray(espacio.imagenes)
+      ? espacio.imagenes.map((u) => normalizarUrlImagen(u)).filter(Boolean)
+      : [],
+  };
+}
 
 export const clienteHttp = axios.create({
   baseURL: process.env.EXPO_PUBLIC_API_URL || DEFAULT_API_URL,
@@ -20,10 +112,10 @@ export const clienteHttp = axios.create({
   },
 });
 
-// Interceptor de envío: agrega Bearer token si existe en SecureStore
+// Interceptor de envío: agrega Bearer token si existe en almacenamiento seguro o memoria
 clienteHttp.interceptors.request.use(async (config) => {
   try {
-    const token = await SecureStore.getItemAsync(TOKEN_SECURE_KEY);
+    const token = await leerItemSeguro(TOKEN_SECURE_KEY);
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -81,7 +173,7 @@ export const USAR_MOCKS = false;
 export async function simular<T>(
   fn: (token: string) => Promise<{ datos: T; meta?: any } | T>
 ): Promise<{ datos: T; meta: any }> {
-  const token = (await SecureStore.getItemAsync(TOKEN_SECURE_KEY)) || '';
+  const token = (await leerItemSeguro(TOKEN_SECURE_KEY)) || '';
   const res = await fn(token);
   if (res && typeof res === 'object' && 'datos' in res) {
     return { datos: (res as any).datos, meta: (res as any).meta ?? null };
@@ -114,23 +206,53 @@ export async function subirArchivo(
   uriLocal: string
 ): Promise<{ url: string; tipo: 'imagen' | 'audio' | 'video'; bytes: number }> {
   const formData = new FormData();
-  const nombre = uriLocal.split('/').pop() || 'foto.jpg';
+  const limpio = uriLocal.split('?')[0] || 'foto.jpg';
+  const ext = (limpio.split('.').pop() || 'jpg').toLowerCase();
+  const mime =
+    ext === 'png'
+      ? 'image/png'
+      : ext === 'webp'
+      ? 'image/webp'
+      : 'image/jpeg';
+  const nombre = limpio.split('/').pop() || `foto.${ext === 'png' ? 'png' : 'jpg'}`;
 
-  // @ts-expect-error FormData de React Native admite objeto con uri, name, type
-  formData.append('archivo', {
-    uri: uriLocal,
-    name: nombre,
-    type: 'image/jpeg',
-  });
+  if (Platform.OS === 'web') {
+    const respuestaBlob = await fetch(uriLocal);
+    const blob = await respuestaBlob.blob();
+    formData.append('archivo', blob, nombre);
+  } else {
+    // @ts-expect-error FormData de React Native admite objeto con uri, name, type
+    formData.append('archivo', {
+      uri: uriLocal,
+      name: nombre,
+      type: mime,
+    });
+  }
 
-  const res = await clienteHttp.post<{
-    datos: { url: string; tipo: 'imagen' | 'audio' | 'video'; bytes: number };
-  }>('/archivos', formData, {
+  const token = await leerItemSeguro(TOKEN_SECURE_KEY);
+  const baseUrl = (process.env.EXPO_PUBLIC_API_URL || DEFAULT_API_URL).replace(/\/+$/, '');
+
+  const respuesta = await fetch(`${baseUrl}/archivos`, {
+    method: 'POST',
     headers: {
-      'Content-Type': 'multipart/form-data',
+      Accept: 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
+    body: formData,
   });
 
-  return res.data.datos;
-}
+  const json = await respuesta.json().catch(() => null);
 
+  if (!respuesta.ok) {
+    if (json?.error) {
+      throw new ApiError(json.error.codigo, json.error.mensaje, respuesta.status);
+    }
+    throw new ApiError(
+      'ERROR_SUBIDA',
+      'No se pudo subir la imagen al servidor.',
+      respuesta.status
+    );
+  }
+
+  return json.datos;
+}

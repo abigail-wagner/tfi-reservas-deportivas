@@ -31,9 +31,6 @@ export default function PerfilPantalla() {
   const {
     usuario,
     cerrarSesion,
-    biometriaDisponible,
-    biometriaHabilitada,
-    setBiometriaHabilitada,
     iniciarSesion,
   } = useSesion();
 
@@ -217,28 +214,6 @@ export default function PerfilPantalla() {
           { backgroundColor: colores.tarjeta, borderColor: colores.borde },
         ]}
       >
-        {/* Switch de Biometría */}
-        {biometriaDisponible && (
-          <View style={[styles.filaAjuste, { borderBottomColor: colores.borde }]}>
-            <View style={styles.ajusteIconoTexto}>
-              <Icono nombre="finger-print-outline" tamano={22} color={colores.primario} />
-              <View>
-                <Text style={[styles.ajusteTitulo, { color: colores.texto }]}>
-                  Ingreso con Biometría
-                </Text>
-                <Text style={[styles.ajusteSub, { color: colores.textoSecundario }]}>
-                  Huella dactilar o Face ID
-                </Text>
-              </View>
-            </View>
-            <Switch
-              value={biometriaHabilitada}
-              onValueChange={setBiometriaHabilitada}
-              trackColor={{ false: '#CBD5E1', true: colores.primario }}
-            />
-          </View>
-        )}
-
         {/* Switch Modo Oscuro */}
         <View style={styles.filaAjuste}>
           <View style={styles.ajusteIconoTexto}>

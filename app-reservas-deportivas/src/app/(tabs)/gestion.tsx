@@ -3,7 +3,7 @@
 
 import React from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, Redirect } from 'expo-router';
 import { useTema } from '../../contexto/tema';
 import { useSesion } from '../../contexto/sesion';
 import { Icono } from '../../componentes/Icono';
@@ -14,6 +14,10 @@ export default function GestionPantalla() {
   const { usuario } = useSesion();
 
   const esPersonal = usuario?.rol === 'encargado' || usuario?.rol === 'administrador';
+
+  if (!esPersonal) {
+    return <Redirect href="/(tabs)" />;
+  }
 
   return (
     <ScrollView style={[styles.contenedor, { backgroundColor: colores.fondo }]}>

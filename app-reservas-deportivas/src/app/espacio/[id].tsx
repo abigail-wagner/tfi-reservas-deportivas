@@ -8,18 +8,19 @@ import {
   ScrollView,
   TouchableOpacity,
   StyleSheet,
-  Dimensions,
   Alert,
   Platform,
+  Image,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { useTema } from '../../contexto/tema';
 import { useSesion } from '../../contexto/sesion';
+import { normalizarUrlImagen, normalizarEspacio } from '../../api/cliente';
+import { ESPACIOS_MOCK } from '../../mocks/datos';
 import { ServicioReservas } from '../../servicios/reservas';
 import { RepositorioOffline } from '../../db/repositorio-offline';
 import { servicioEspacios } from '../../servicios/espacios';
@@ -27,6 +28,9 @@ import { ReproductorCancha } from '../../componentes/ReproductorCancha';
 import { EstadoPantalla } from '../../componentes/EstadoPantalla';
 import { Icono } from '../../componentes/Icono';
 import type { Espacio } from '../../tipos/index';
+
+const IMAGEN_RESPALDO_HERO =
+  'https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&w=800&q=80';
 
 export default function DetalleEspacioPantalla() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -44,6 +48,7 @@ export default function DetalleEspacioPantalla() {
   const [error, setError] = useState<string | null>(null);
   const [imagenIndice, setImagenIndice] = useState(0);
   const [subiendoFoto, setSubiendoFoto] = useState(false);
+  const [falloImagen, setFalloImagen] = useState(false);
 
   const esFavorito = espacio && usuario?.espaciosFavoritos?.includes(espacio.id);
   const esPersonal = usuario?.rol === 'encargado' || usuario?.rol === 'administrador';
@@ -88,8 +93,10 @@ export default function DetalleEspacioPantalla() {
       if (!res.canceled && res.assets[0]?.uri) {
         setSubiendoFoto(true);
         const local = res.assets[0].uri;
-        const actualizado = await servicioEspacios.agregarFoto(id, local);
+        const actualizadoCrudo = await servicioEspacios.agregarFoto(id, local);
+        const actualizado = normalizarEspacio(actualizadoCrudo);
         setEspacio(actualizado);
+        setFalloImagen(false);
         if (repo) {
           await repo.guardarEspacios([actualizado]);
         }
@@ -104,6 +111,23 @@ export default function DetalleEspacioPantalla() {
     }
   };
 
+  const imagenRespaldo = useMemo(() => {
+    if (!espacio) return IMAGEN_RESPALDO_HERO;
+    const mock = ESPACIOS_MOCK.find((m) => m.id === espacio.id);
+    return mock?.imagenes[imagenIndice] || mock?.imagenes[0] || IMAGEN_RESPALDO_HERO;
+  }, [espacio, imagenIndice]);
+
+  const urlActiva = useMemo(() => {
+    if (!espacio) return IMAGEN_RESPALDO_HERO;
+    const candidata = normalizarUrlImagen(espacio.imagenes?.[imagenIndice]);
+    if (!falloImagen && candidata) return candidata;
+    return imagenRespaldo;
+  }, [espacio, imagenIndice, falloImagen, imagenRespaldo]);
+
+  useEffect(() => {
+    setFalloImagen(false);
+  }, [imagenIndice, espacio]);
+
   return (
     <EstadoPantalla cargando={cargando} error={error}>
       {espacio && (
@@ -115,14 +139,12 @@ export default function DetalleEspacioPantalla() {
             ]}
           >
             {/* Galería de Fotos */}
-            <View style={styles.galeriaContenedor}>
+            <View style={[styles.galeriaContenedor, { backgroundColor: colores.chipFondo }]}>
               <Image
-                source={{
-                  uri: espacio.imagenes[imagenIndice] || 'https://via.placeholder.com/800x500',
-                }}
+                source={{ uri: urlActiva }}
                 style={styles.imagenHero}
-                contentFit="cover"
-                transition={300}
+                resizeMode="cover"
+                onError={() => setFalloImagen(true)}
               />
               <TouchableOpacity
                 style={[styles.botonFavoritoFlotante, { backgroundColor: colores.tarjeta }]}

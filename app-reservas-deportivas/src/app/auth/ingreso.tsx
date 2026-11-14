@@ -1,5 +1,5 @@
 // src/app/auth/ingreso.tsx
-// Formulario de ingreso de usuario con react-hook-form, validación zod y autenticación biométrica
+// Formulario de ingreso de usuario con react-hook-form y validación zod
 
 import React, { useState } from 'react';
 import {
@@ -30,12 +30,7 @@ type DatosIngreso = z.infer<typeof esquemaIngreso>;
 export default function IngresoPantalla() {
   const router = useRouter();
   const { colores } = useTema();
-  const {
-    iniciarSesion,
-    biometriaDisponible,
-    biometriaHabilitada,
-    desbloquearBiometrico,
-  } = useSesion();
+  const { iniciarSesion } = useSesion();
 
   const [cargando, setCargando] = useState(false);
 
@@ -61,15 +56,6 @@ export default function IngresoPantalla() {
       Alert.alert('No se pudo ingresar', err?.message || 'Revisá tus credenciales.');
     } finally {
       setCargando(false);
-    }
-  };
-
-  const handleBiometria = async () => {
-    const exito = await desbloquearBiometrico();
-    if (exito) {
-      router.replace('/(tabs)');
-    } else {
-      Alert.alert('Autenticación biométrica no completada');
     }
   };
 
@@ -176,19 +162,6 @@ export default function IngresoPantalla() {
           </Text>
         </TouchableOpacity>
 
-        {/* Botón Biometría */}
-        {biometriaDisponible && biometriaHabilitada && (
-          <TouchableOpacity
-            style={[styles.botonBiometria, { borderColor: colores.primario }]}
-            onPress={handleBiometria}
-          >
-            <Icono nombre="finger-print-outline" tamano={22} color={colores.primario} />
-            <Text style={[styles.botonBiometriaTexto, { color: colores.primario }]}>
-              Ingresar con Huella o Face ID
-            </Text>
-          </TouchableOpacity>
-        )}
-
         {/* Acceso a Registro */}
         <View style={styles.registroFila}>
           <Text style={{ color: colores.textoSecundario, fontSize: 13 }}>
@@ -292,19 +265,6 @@ const styles = StyleSheet.create({
   botonIngresarTexto: {
     color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: '700',
-  },
-  botonBiometria: {
-    height: 48,
-    borderRadius: 12,
-    borderWidth: 1.5,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  botonBiometriaTexto: {
-    fontSize: 14,
     fontWeight: '700',
   },
   registroFila: {

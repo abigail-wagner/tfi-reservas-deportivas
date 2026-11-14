@@ -11,8 +11,8 @@ import {
   FlatList,
   StyleSheet,
   Alert,
+  Image,
 } from 'react-native';
-import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useTema } from '../../contexto/tema';
@@ -215,7 +215,7 @@ export default function BloqueosPantalla() {
 
         {fotoEvidenciaUri && (
           <View style={styles.previewContenedor}>
-            <Image source={{ uri: fotoEvidenciaUri }} style={styles.previewImagen} contentFit="cover" />
+            <Image source={{ uri: fotoEvidenciaUri }} style={styles.previewImagen} resizeMode="cover" />
             <TouchableOpacity style={styles.botonBorrarFoto} onPress={() => setFotoEvidenciaUri(null)}>
               <Icono nombre="trash" tamano={16} color="#FFFFFF" />
             </TouchableOpacity>

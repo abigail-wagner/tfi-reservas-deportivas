@@ -1,12 +1,13 @@
 // src/componentes/TarjetaEspacio.tsx
 // Tarjeta de espacio deportivo con imagen optimizada, insignias de equipamiento y botón de favoritos
 
-import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { Image } from 'expo-image';
+import React, { useEffect, useState } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { useTema } from '../contexto/tema';
 import { useSesion } from '../contexto/sesion';
+import { normalizarUrlImagen } from '../api/cliente';
+import { ESPACIOS_MOCK } from '../mocks/datos';
 import { Icono } from './Icono';
 import { formatearDistancia } from '../utils/distancia';
 import type { Espacio } from '../tipos/index';
@@ -17,6 +18,9 @@ interface TarjetaEspacioProps {
   onPress: () => void;
 }
 
+const IMAGEN_RESPALDO_GENERAL =
+  'https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&w=800&q=80';
+
 export const TarjetaEspacio: React.FC<TarjetaEspacioProps> = ({
   espacio,
   distanciaKm,
@@ -24,9 +28,17 @@ export const TarjetaEspacio: React.FC<TarjetaEspacioProps> = ({
 }) => {
   const { colores } = useTema();
   const { usuario, alternarFavorito } = useSesion();
+  const [falloImagen, setFalloImagen] = useState(false);
 
   const esFavorito = usuario?.espaciosFavoritos?.includes(espacio.id) ?? false;
-  const imagenUrl = espacio.imagenes[0] || 'https://via.placeholder.com/600x400';
+  const imagenRespaldo =
+    ESPACIOS_MOCK.find((m) => m.id === espacio.id)?.imagenes[0] || IMAGEN_RESPALDO_GENERAL;
+  const urlPrimaria = normalizarUrlImagen(espacio.imagenes?.[0]);
+  const imagenUrl = !falloImagen && urlPrimaria ? urlPrimaria : imagenRespaldo;
+
+  useEffect(() => {
+    setFalloImagen(false);
+  }, [urlPrimaria]);
 
   const handleFavoritoPress = async (e: any) => {
     e.stopPropagation();
@@ -46,12 +58,12 @@ export const TarjetaEspacio: React.FC<TarjetaEspacioProps> = ({
       onPress={onPress}
       activeOpacity={0.88}
     >
-      <View style={styles.imagenContenedor}>
+      <View style={[styles.imagenContenedor, { backgroundColor: colores.chipFondo }]}>
         <Image
           source={{ uri: imagenUrl }}
           style={styles.imagen}
-          contentFit="cover"
-          transition={250}
+          resizeMode="cover"
+          onError={() => setFalloImagen(true)}
         />
         <TouchableOpacity
           style={[styles.botonFavorito, { backgroundColor: colores.tarjeta }]}

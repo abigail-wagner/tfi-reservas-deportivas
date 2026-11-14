@@ -1,7 +1,7 @@
 // src/servicios/reservas.ts
 // Lógica de negocio para consulta de espacios, grilla de turnos, reservas y cancelaciones
 
-import { clienteHttp } from '../api/cliente';
+import { clienteHttp, normalizarEspacio } from '../api/cliente';
 import {
   DEPORTES_MOCK,
   ESPACIOS_MOCK,
@@ -31,8 +31,9 @@ export class ServicioReservas {
     try {
       const res = await clienteHttp.get<{ datos: Espacio[] }>('/espacios');
       if (res.data?.datos && res.data.datos.length > 0) {
-        if (this.repo) await this.repo.guardarEspacios(res.data.datos);
-        return res.data.datos;
+        const normalizados = res.data.datos.map(normalizarEspacio);
+        if (this.repo) await this.repo.guardarEspacios(normalizados);
+        return normalizados;
       }
     } catch {
       // Fallback a SQLite o Mocks
@@ -40,7 +41,7 @@ export class ServicioReservas {
 
     if (this.repo) {
       const locales = await this.repo.obtenerEspacios();
-      if (locales.length > 0) return locales;
+      if (locales.length > 0) return locales.map(normalizarEspacio);
     }
 
     // Si aún no hay nada en SQLite, sembrar los mocks
@@ -54,6 +55,18 @@ export class ServicioReservas {
    * Obtiene un espacio por ID
    */
   async obtenerEspacioPorId(id: string): Promise<Espacio | null> {
+    try {
+      const res = await clienteHttp.get<{ datos: Espacio }>(
+        `/espacios/${encodeURIComponent(id)}`
+      );
+      if (res.data?.datos) {
+        const normalizado = normalizarEspacio(res.data.datos);
+        if (this.repo) await this.repo.guardarEspacios([normalizado]);
+        return normalizado;
+      }
+    } catch {
+      // Fallback a listado o caché local
+    }
     const espacios = await this.obtenerEspacios();
     return espacios.find((e) => e.id === id) || null;
   }
