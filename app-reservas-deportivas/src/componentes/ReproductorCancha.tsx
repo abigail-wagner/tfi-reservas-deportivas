@@ -11,13 +11,26 @@ interface ReproductorCanchaProps {
   videoUrl: string | null;
 }
 
-export const ReproductorCancha: React.FC<ReproductorCanchaProps> = ({ videoUrl }) => {
-  const { colores } = useTema();
-
-  const player = useVideoPlayer(videoUrl || '', (p) => {
+const ReproductorActivo: React.FC<{ url: string }> = ({ url }) => {
+  const player = useVideoPlayer(url, (p) => {
     p.loop = true;
     p.muted = true;
   });
+
+  return (
+    <View style={styles.contenedor}>
+      <VideoView
+        style={styles.video}
+        player={player}
+        nativeControls={true}
+        contentFit="cover"
+      />
+    </View>
+  );
+};
+
+export const ReproductorCancha: React.FC<ReproductorCanchaProps> = ({ videoUrl }) => {
+  const { colores } = useTema();
 
   if (!videoUrl) {
     return (
@@ -35,16 +48,7 @@ export const ReproductorCancha: React.FC<ReproductorCanchaProps> = ({ videoUrl }
     );
   }
 
-  return (
-    <View style={styles.contenedor}>
-      <VideoView
-        style={styles.video}
-        player={player}
-        nativeControls={true}
-        contentFit="cover"
-      />
-    </View>
-  );
+  return <ReproductorActivo url={videoUrl} />;
 };
 
 const styles = StyleSheet.create({

@@ -59,7 +59,7 @@ export class ServicioReservas {
   async obtenerEspacios(): Promise<Espacio[]> {
     try {
       const res = await clienteHttp.get<{ datos: Espacio[] }>('/espacios', {
-        params: { porPagina: 50 },
+        params: { porPagina: 100 },
       });
       if (res.data?.datos && res.data.datos.length > 0) {
         const normalizados = res.data.datos.map(normalizarEspacio);

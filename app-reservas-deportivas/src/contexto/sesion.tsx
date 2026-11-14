@@ -13,7 +13,15 @@ import { USUARIOS_MOCK, CONTRASENA_DEMO } from '../mocks/datos';
 import { registrarTokenPushEnBackend } from '../notificaciones/avisos-locales';
 import type { Sesion, Usuario } from '../tipos/index';
 
-const USUARIO_SECURE_KEY = 'villaguay_auth_usuario';
+export const USUARIO_SECURE_KEY = 'villaguay_auth_usuario';
+
+function normalizarEmailDemo(email: string): string {
+  const limpio = email.trim().toLowerCase();
+  if (limpio === 'admin@villaguay.demo.ar') {
+    return 'nahuel@villaguay.demo.ar';
+  }
+  return limpio;
+}
 
 interface SesionContextoTipo {
   usuario: Usuario | null;
@@ -45,6 +53,10 @@ export const SesionProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
         if (tokenGuardado && usuarioGuardadoStr) {
           const u = JSON.parse(usuarioGuardadoStr) as Usuario;
+          if (u.email === 'admin@villaguay.demo.ar') {
+            u.email = 'nahuel@villaguay.demo.ar';
+            u.nombre = 'Nahuel Ojeda';
+          }
           setToken(tokenGuardado);
           setUsuario(u);
 
@@ -52,7 +64,7 @@ export const SesionProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           if (tokenGuardado.startsWith('demo-jwt')) {
             clienteHttp
               .post<{ datos: Sesion }>('/auth/ingreso', {
-                email: u.email,
+                email: normalizarEmailDemo(u.email),
                 contrasena: CONTRASENA_DEMO,
               })
               .then(async (res) => {
@@ -110,10 +122,11 @@ export const SesionProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   }, []);
 
   const iniciarSesion = async (email: string, contrasena: string): Promise<Usuario> => {
+    const emailNormalizado = normalizarEmailDemo(email);
     try {
       // Intento contra API real
       const respuesta = await clienteHttp.post<{ datos: Sesion }>('/auth/ingreso', {
-        email,
+        email: emailNormalizado,
         contrasena,
       });
       const { token: nuevoToken, usuario: nuevoUsuario } = respuesta.data.datos;
@@ -126,7 +139,7 @@ export const SesionProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     } catch {
       // Fallback offline o demo
       const demoUser = USUARIOS_MOCK.find(
-        (u) => u.email.toLowerCase() === email.trim().toLowerCase()
+        (u) => u.email.toLowerCase() === emailNormalizado
       );
       if (demoUser && contrasena === CONTRASENA_DEMO) {
         const fakeToken = `demo-jwt-${demoUser.id}`;

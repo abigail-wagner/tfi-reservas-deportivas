@@ -291,8 +291,8 @@ export const USUARIOS_MOCK: Usuario[] = [
   },
   {
     id: 'usr-302',
-    nombre: 'Admin Deportes',
-    email: 'admin@villaguay.demo.ar',
+    nombre: 'Nahuel Ojeda',
+    email: 'nahuel@villaguay.demo.ar',
     telefono: '3455-420002',
     rol: 'administrador',
     espaciosFavoritos: [],

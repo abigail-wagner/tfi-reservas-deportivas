@@ -10,6 +10,7 @@ import type { Espacio, RespuestaError } from '../tipos/index';
 export const DEFAULT_API_URL = 'https://reservas.tail92fdf5.ts.net';
 
 export const TOKEN_SECURE_KEY = 'villaguay_auth_token';
+const USUARIO_SECURE_KEY = 'villaguay_auth_usuario';
 
 let tokenEnMemoria: string | null = null;
 
@@ -65,10 +66,75 @@ export async function borrarItemSeguro(clave: string): Promise<void> {
   }
 }
 
+/**
+ * Obtiene el token JWT activo. Si el token guardado era de demostración local (`demo-jwt-*`),
+ * solicita automáticamente un JWT real a `POST /auth/ingreso` en la instancia configurada.
+ */
+export async function asegurarTokenValido(): Promise<string | null> {
+  const tokenActual = await leerItemSeguro(TOKEN_SECURE_KEY);
+  if (tokenActual && !tokenActual.startsWith('demo-jwt')) {
+    return tokenActual;
+  }
+
+  try {
+    const baseUrl = (process.env.EXPO_PUBLIC_API_URL || DEFAULT_API_URL).replace(/\/+$/, '');
+    const usuarioStr = await leerItemSeguro(USUARIO_SECURE_KEY);
+    let email = 'emiliano@mail.com';
+    if (usuarioStr) {
+      const u = JSON.parse(usuarioStr);
+      if (u?.email) {
+        email =
+          u.email.trim().toLowerCase() === 'admin@villaguay.demo.ar'
+            ? 'nahuel@villaguay.demo.ar'
+            : u.email.trim().toLowerCase();
+      }
+    }
+
+    const r = await fetch(`${baseUrl}/auth/ingreso`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+      body: JSON.stringify({
+        email,
+        contrasena: 'villaguay2026',
+      }),
+    });
+
+    if (r.ok) {
+      const j = await r.json();
+      if (j?.datos?.token) {
+        await guardarItemSeguro(TOKEN_SECURE_KEY, j.datos.token);
+        if (j?.datos?.usuario) {
+          await guardarItemSeguro(USUARIO_SECURE_KEY, JSON.stringify(j.datos.usuario));
+        }
+        return j.datos.token;
+      }
+    }
+  } catch {
+    // Si está sin conexión, devolver el token actual
+  }
+
+  return tokenActual;
+}
+
 export function normalizarUrlImagen(url: string | undefined | null): string {
   if (!url) return '';
   const limpia = url.trim();
   if (!limpia) return '';
+  // Si ya es una URL absoluta (http://, https://) o URI local (file://, content://, data:, blob:),
+  // se devuelve tal cual como indica la documentación de la API.
+  if (
+    limpia.startsWith('http://') ||
+    limpia.startsWith('https://') ||
+    limpia.startsWith('file://') ||
+    limpia.startsWith('content://') ||
+    limpia.startsWith('data:') ||
+    limpia.startsWith('blob:')
+  ) {
+    return limpia;
+  }
   const base = (process.env.EXPO_PUBLIC_API_URL || DEFAULT_API_URL).replace(/\/+$/, '');
   if (limpia.startsWith('/archivos/')) {
     return `${base}${limpia}`;
@@ -76,20 +142,6 @@ export function normalizarUrlImagen(url: string | undefined | null): string {
   if (limpia.startsWith('imagenes/') || limpia.startsWith('archivos/')) {
     const ruta = limpia.startsWith('archivos/') ? `/${limpia}` : `/archivos/${limpia}`;
     return `${base}${ruta}`;
-  }
-  try {
-    const parsed = new URL(limpia);
-    if (
-      parsed.pathname.startsWith('/archivos/') &&
-      (parsed.hostname === 'localhost' ||
-        parsed.hostname === '127.0.0.1' ||
-        parsed.hostname === '10.0.2.2' ||
-        parsed.hostname.startsWith('192.168.'))
-    ) {
-      return `${base}${parsed.pathname}`;
-    }
-  } catch {
-    // URI local (file://, content://, data:)
   }
   return limpia;
 }
@@ -100,22 +152,26 @@ export function normalizarEspacio(espacio: Espacio): Espacio {
     imagenes: Array.isArray(espacio.imagenes)
       ? espacio.imagenes.map((u) => normalizarUrlImagen(u)).filter(Boolean)
       : [],
+    videoUrl: espacio.videoUrl ?? null,
   };
 }
 
 export const clienteHttp = axios.create({
   baseURL: process.env.EXPO_PUBLIC_API_URL || DEFAULT_API_URL,
-  timeout: 10000,
+  timeout: 12000,
   headers: {
     'Content-Type': 'application/json',
     Accept: 'application/json',
   },
 });
 
-// Interceptor de envío: agrega Bearer token si existe en almacenamiento seguro o memoria
+// Interceptor de envío: agrega Bearer token válido si existe en almacenamiento seguro o memoria
 clienteHttp.interceptors.request.use(async (config) => {
   try {
-    const token = await leerItemSeguro(TOKEN_SECURE_KEY);
+    const esLogin = config.url?.includes('/auth/ingreso') || config.url?.includes('/auth/registro');
+    const token = esLogin
+      ? await leerItemSeguro(TOKEN_SECURE_KEY)
+      : await asegurarTokenValido();
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -173,7 +229,7 @@ export const USAR_MOCKS = false;
 export async function simular<T>(
   fn: (token: string) => Promise<{ datos: T; meta?: any } | T>
 ): Promise<{ datos: T; meta: any }> {
-  const token = (await leerItemSeguro(TOKEN_SECURE_KEY)) || '';
+  const token = (await asegurarTokenValido()) || '';
   const res = await fn(token);
   if (res && typeof res === 'object' && 'datos' in res) {
     return { datos: (res as any).datos, meta: (res as any).meta ?? null };
@@ -202,57 +258,58 @@ export async function pedirLista<T>(
   return pedir<T[]>(ruta, { metodo: 'GET', params });
 }
 
+/**
+ * Paso 1 de subida de fotos: `POST /archivos` (multipart/form-data, campo `archivo`).
+ * Devuelve `{ url, tipo, bytes }` donde `url` es la URL absoluta de la imagen en esa instancia.
+ */
 export async function subirArchivo(
-  uriLocal: string
+  uriLocal: string,
+  mimeTypeOpcional?: string
 ): Promise<{ url: string; tipo: 'imagen' | 'audio' | 'video'; bytes: number }> {
-  const formData = new FormData();
-  const limpio = uriLocal.split('?')[0] || 'foto.jpg';
-  const ext = (limpio.split('.').pop() || 'jpg').toLowerCase();
-  const mime =
-    ext === 'png'
-      ? 'image/png'
-      : ext === 'webp'
-      ? 'image/webp'
-      : 'image/jpeg';
-  const nombre = limpio.split('/').pop() || `foto.${ext === 'png' ? 'png' : 'jpg'}`;
+  const baseUrl = (process.env.EXPO_PUBLIC_API_URL || DEFAULT_API_URL).replace(/\/+$/, '');
+  const token = await asegurarTokenValido();
+
+  const limpio = (uriLocal.split('?')[0] || '').toLowerCase();
+  const esPng = mimeTypeOpcional === 'image/png' || limpio.endsWith('.png');
+  const esWebp = mimeTypeOpcional === 'image/webp' || limpio.endsWith('.webp');
+  const type = esPng ? 'image/png' : esWebp ? 'image/webp' : 'image/jpeg';
+  const name = esPng ? 'foto.png' : esWebp ? 'foto.webp' : 'foto.jpg';
+
+  const form = new FormData();
 
   if (Platform.OS === 'web') {
     const respuestaBlob = await fetch(uriLocal);
     const blob = await respuestaBlob.blob();
-    formData.append('archivo', blob, nombre);
+    form.append('archivo', blob, name);
   } else {
-    // @ts-expect-error FormData de React Native admite objeto con uri, name, type
-    formData.append('archivo', {
+    form.append('archivo', {
       uri: uriLocal,
-      name: nombre,
-      type: mime,
-    });
+      name,
+      type,
+    } as unknown as Blob);
   }
 
-  const token = await leerItemSeguro(TOKEN_SECURE_KEY);
-  const baseUrl = (process.env.EXPO_PUBLIC_API_URL || DEFAULT_API_URL).replace(/\/+$/, '');
-
-  const respuesta = await fetch(`${baseUrl}/archivos`, {
+  const r1 = await fetch(`${baseUrl}/archivos`, {
     method: 'POST',
     headers: {
       Accept: 'application/json',
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
-    body: formData,
+    body: form,
   });
 
-  const json = await respuesta.json().catch(() => null);
+  const j1 = await r1.json().catch(() => null);
 
-  if (!respuesta.ok) {
-    if (json?.error) {
-      throw new ApiError(json.error.codigo, json.error.mensaje, respuesta.status);
+  if (!r1.ok) {
+    if (j1?.error) {
+      throw new ApiError(j1.error.codigo, j1.error.mensaje, r1.status);
     }
     throw new ApiError(
       'ERROR_SUBIDA',
       'No se pudo subir la imagen al servidor.',
-      respuesta.status
+      r1.status
     );
   }
 
-  return json.datos;
+  return j1.datos;
 }

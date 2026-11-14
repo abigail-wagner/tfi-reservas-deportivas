@@ -76,39 +76,73 @@ export default function DetalleEspacioPantalla() {
     await alternarFavorito(espacio.id);
   };
 
-  const handleAgregarFoto = async () => {
+  const subirYAsociarAsset = async (uri: string, mimeType?: string) => {
     if (!id) return;
     try {
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Permiso necesario', 'Se necesita acceso a la galería para subir una foto.');
-        return;
+      setSubiendoFoto(true);
+      const actualizadoCrudo = await servicioEspacios.agregarFoto(id, uri, mimeType);
+      const actualizado = normalizarEspacio(actualizadoCrudo);
+      setEspacio(actualizado);
+      setFalloImagen(false);
+      setImagenIndice(0);
+      if (repo) {
+        await repo.guardarEspacios([actualizado]);
       }
-
-      const res = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ['images'],
-        quality: 0.8,
-      });
-
-      if (!res.canceled && res.assets[0]?.uri) {
-        setSubiendoFoto(true);
-        const local = res.assets[0].uri;
-        const actualizadoCrudo = await servicioEspacios.agregarFoto(id, local);
-        const actualizado = normalizarEspacio(actualizadoCrudo);
-        setEspacio(actualizado);
-        setFalloImagen(false);
-        if (repo) {
-          await repo.guardarEspacios([actualizado]);
-        }
-        setImagenIndice(0);
+      if (Platform.OS !== 'web') {
         await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        Alert.alert('Éxito', 'La foto de la cancha fue agregada correctamente y guardada en el servidor.');
       }
+      Alert.alert(
+        'Foto guardada',
+        'La foto fue subida con POST /archivos y asociada al espacio en la API.'
+      );
     } catch (err: any) {
       Alert.alert('Error al subir foto', err?.message || 'No se pudo subir la foto.');
     } finally {
       setSubiendoFoto(false);
     }
+  };
+
+  const elegirDeGaleria = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permiso necesario', 'Se necesita acceso a la galería para subir una foto.');
+      return;
+    }
+    const res = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      quality: 0.75,
+    });
+    if (!res.canceled && res.assets[0]?.uri) {
+      await subirYAsociarAsset(res.assets[0].uri, res.assets[0].mimeType);
+    }
+  };
+
+  const tomarConCamara = async () => {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permiso necesario', 'Se necesita acceso a la cámara para tomar una foto.');
+      return;
+    }
+    const res = await ImagePicker.launchCameraAsync({
+      mediaTypes: ['images'],
+      quality: 0.75,
+    });
+    if (!res.canceled && res.assets[0]?.uri) {
+      await subirYAsociarAsset(res.assets[0].uri, res.assets[0].mimeType);
+    }
+  };
+
+  const handleAgregarFoto = async () => {
+    if (!id) return;
+    if (Platform.OS === 'web') {
+      await elegirDeGaleria();
+      return;
+    }
+    Alert.alert('Agregar foto al espacio', 'Elegí desde dónde querés cargar la imagen:', [
+      { text: 'Cancelar', style: 'cancel' },
+      { text: 'Tomar foto', onPress: () => tomarConCamara() },
+      { text: 'Elegir de galería', onPress: () => elegirDeGaleria() },
+    ]);
   };
 
   const imagenRespaldo = useMemo(() => {
@@ -193,6 +227,38 @@ export default function DetalleEspacioPantalla() {
                 </View>
               )}
             </View>
+
+            {/* Tira de miniaturas cuando hay más de una foto */}
+            {espacio.imagenes.length > 1 && (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.miniaturasScroll}
+              >
+                {espacio.imagenes.map((imgUrl, idx) => {
+                  const activa = idx === imagenIndice;
+                  return (
+                    <TouchableOpacity
+                      key={`${imgUrl}-${idx}`}
+                      onPress={() => setImagenIndice(idx)}
+                      style={[
+                        styles.miniaturaItem,
+                        {
+                          borderColor: activa ? colores.primario : colores.borde,
+                        },
+                      ]}
+                      activeOpacity={0.85}
+                    >
+                      <Image
+                        source={{ uri: normalizarUrlImagen(imgUrl) || imagenRespaldo }}
+                        style={styles.miniaturaImagen}
+                        resizeMode="cover"
+                      />
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+            )}
 
             {/* Cabecera y Datos Principales */}
             <View style={[styles.seccionDetalle, { backgroundColor: colores.tarjeta }]}>
@@ -381,6 +447,22 @@ const styles = StyleSheet.create({
     height: 8,
     borderRadius: 4,
     backgroundColor: '#FFFFFF',
+  },
+  miniaturasScroll: {
+    paddingHorizontal: 14,
+    paddingTop: 10,
+    gap: 8,
+  },
+  miniaturaItem: {
+    width: 68,
+    height: 48,
+    borderRadius: 8,
+    borderWidth: 2,
+    overflow: 'hidden',
+  },
+  miniaturaImagen: {
+    width: '100%',
+    height: '100%',
   },
   seccionDetalle: {
     padding: 18,

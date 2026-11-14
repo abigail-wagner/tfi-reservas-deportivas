@@ -180,7 +180,7 @@ export default function IngresoPantalla() {
         Cuentas rápidas de prueba:
       </Text>
       <View style={styles.demoBotones}>
-        {USUARIOS_MOCK.slice(0, 4).map((u) => (
+        {USUARIOS_MOCK.map((u) => (
           <TouchableOpacity
             key={u.id}
             style={[

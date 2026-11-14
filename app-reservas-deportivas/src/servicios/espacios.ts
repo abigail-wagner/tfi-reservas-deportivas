@@ -1,5 +1,14 @@
 // src/servicios/espacios.ts
-import { pedir, pedirLista, simular, subirArchivo, USAR_MOCKS, ErrorApi } from './cliente';
+import {
+  pedir,
+  pedirLista,
+  simular,
+  subirArchivo,
+  asegurarTokenValido,
+  DEFAULT_API_URL,
+  USAR_MOCKS,
+  ErrorApi,
+} from './cliente';
 import type { Espacio } from '../tipos/index';
 
 export const CLAVES = {
@@ -35,7 +44,7 @@ export const servidor = {
 };
 
 export async function obtenerEspacios(): Promise<Espacio[]> {
-  const r = await pedir<Espacio[]>('/espacios');
+  const r = await pedir<Espacio[]>('/espacios', { params: { porPagina: 100 } });
   return r.datos;
 }
 
@@ -45,11 +54,17 @@ export async function obtenerEspacio(id: string): Promise<Espacio> {
 }
 
 /**
- * Sube una foto del estado de la cancha con POST /archivos y la asocia al
- * espacio con POST /espacios/:id/imagenes. Desde ahí la devuelve la API en
- * cada GET, en cualquier teléfono.
+ * Flujo oficial de dos pasos documentado por la API:
+ * 1. Sube la foto con `POST /archivos` (multipart/form-data, campo `archivo`).
+ * 2. Asocia la URL exacta devuelta al espacio con `POST /espacios/:id/imagenes`
+ *    enviando únicamente `{ "url": subido.url }`.
+ * Devuelve el `Espacio` actualizado con la foto nueva primera en `imagenes`.
  */
-export async function agregarFoto(id: string, uriLocal: string): Promise<Espacio> {
+export async function agregarFoto(
+  id: string,
+  uriLocal: string,
+  mimeTypeOpcional?: string
+): Promise<Espacio> {
   if (USAR_MOCKS) {
     const r = await simular((token) =>
       servidor.agregarFoto(token, id, uriLocal)
@@ -57,18 +72,37 @@ export async function agregarFoto(id: string, uriLocal: string): Promise<Espacio
     return r.datos;
   }
 
-  const subido = await subirArchivo(uriLocal);
+  // 1. Subir el archivo con POST /archivos
+  const subido = await subirArchivo(uriLocal, mimeTypeOpcional);
+
+  // 2. Asociarlo al espacio con POST /espacios/:id/imagenes (cuerpo: solamente { url })
+  const baseUrl = (process.env.EXPO_PUBLIC_API_URL || DEFAULT_API_URL).replace(/\/+$/, '');
+  const token = await asegurarTokenValido();
 
   let actualizado: Espacio;
   try {
-    const r = await pedir<Espacio>(
-      `/espacios/${encodeURIComponent(id)}/imagenes`,
-      { metodo: 'POST', cuerpo: { url: subido.url } }
-    );
-    actualizado = r.datos;
+    const r2 = await fetch(`${baseUrl}/espacios/${encodeURIComponent(id)}/imagenes`, {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({ url: subido.url }),
+    });
+
+    const j2 = await r2.json().catch(() => null);
+    if (!r2.ok) {
+      throw new ErrorApi(
+        j2?.error?.codigo || 'ERROR_ASOCIACION',
+        j2?.error?.mensaje || 'No se pudo asociar la foto al espacio.',
+        r2.status
+      );
+    }
+
+    actualizado = j2.datos as Espacio;
   } catch (e) {
-    // API vieja sin el endpoint de asociación: la foto queda sólo en este
-    // teléfono, como antes, en vez de romper la carga entera.
+    // Fallback si la instancia es vieja y devuelve RUTA_NO_ENCONTRADA
     if (!(e instanceof ErrorApi) || e.codigo !== 'RUTA_NO_ENCONTRADA') throw e;
     const espacio = await obtenerEspacio(id);
     actualizado = {

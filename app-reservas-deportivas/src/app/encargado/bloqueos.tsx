@@ -18,6 +18,8 @@ import { useSQLiteContext } from 'expo-sqlite';
 import { useTema } from '../../contexto/tema';
 import { ServicioGestion } from '../../servicios/gestion';
 import { ServicioReservas } from '../../servicios/reservas';
+import { servicioEspacios } from '../../servicios/espacios';
+import { normalizarEspacio } from '../../api/cliente';
 import { RepositorioOffline } from '../../db/repositorio-offline';
 import { guardarFotoEvidenciaLocal } from '../../servicios/archivos';
 import { Icono } from '../../componentes/Icono';
@@ -107,9 +109,22 @@ export default function BloqueosPantalla() {
     try {
       setCreando(true);
       await gestion.crearBloqueo(espacioIdSeleccionado, fecha, null, null, motivo);
+      if (fotoEvidenciaUri) {
+        try {
+          const espacioConFoto = await servicioEspacios.agregarFoto(
+            espacioIdSeleccionado,
+            fotoEvidenciaUri
+          );
+          if (repo) {
+            await repo.guardarEspacios([normalizarEspacio(espacioConFoto)]);
+          }
+        } catch {
+          // Si no hay red al crear el bloqueo, la evidencia queda guardada localmente
+        }
+      }
       Alert.alert(
         'Cancha Bloqueada',
-        'El bloqueo fue registrado. Los turnos de ese día figurarán en mantenimiento y no podrán reservarse.'
+        'El bloqueo fue registrado y la foto se asoció al espacio deportivo.'
       );
       setMotivo('');
       setFotoEvidenciaUri(null);

@@ -1,7 +1,7 @@
 // src/app/(tabs)/index.tsx
 // Catálogo principal de espacios deportivos en Villaguay con filtros, búsqueda y geolocalización
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -13,7 +13,7 @@ import {
   StyleSheet,
   Modal,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import * as Location from 'expo-location';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useTema } from '../../contexto/tema';
@@ -94,9 +94,11 @@ export default function CatalogoEspaciosPantalla() {
     }
   };
 
-  useEffect(() => {
-    cargarDatos();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      cargarDatos();
+    }, [])
+  );
 
   const onRefresh = () => {
     setRefrescando(true);
