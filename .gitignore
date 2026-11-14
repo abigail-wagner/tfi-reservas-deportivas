@@ -36,9 +36,8 @@ coverage/
 credentials.json
 *.keystore
 
-# Logs y enlaces temporales
+# Logs y temporales
 build-log.bin
 eas-log.txt
-fulbito/
-api/
+
 
